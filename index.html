@@ -1,0 +1,1590 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#02030c">
+<title>宇宙的诞生：从量子涨落到星辰大海 · Birth of the Universe</title>
+<style>
+/* ============ tokens ============ */
+:root{
+  --ink:#edf1ff; --dim:#9aa7c9; --faint:#5e6a8c;
+  --bg:#02030c;
+  --cyan:#7dd0ff; --violet:#b78bff; --amber:#ffc476; --ember:#ff6a4d;
+  --line:rgba(150,170,230,.16);
+  --glass:rgba(9,13,30,.58); --glass2:rgba(11,16,36,.78);
+  --serif:"Songti SC","Noto Serif CJK SC","Noto Serif SC","STSong","SimSun",serif;
+  --sans:"PingFang SC","Noto Sans CJK SC","Microsoft YaHei","Helvetica Neue",system-ui,sans-serif;
+  --tick:11px;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:var(--bg)}
+body{font-family:var(--sans);color:var(--ink);user-select:none;-webkit-user-select:none}
+button{font-family:inherit;color:inherit;background:none;border:none;cursor:pointer}
+:focus-visible{outline:2px solid var(--cyan);outline-offset:2px;border-radius:8px}
+canvas#cv{position:fixed;inset:0;width:100%;height:100%;display:block}
+
+/* ============ HUD scaffolding ============ */
+#hud{position:fixed;inset:0;pointer-events:none;z-index:5}
+#hud::before{ /* bottom scrim for subtitle legibility */
+  content:"";position:absolute;left:0;right:0;bottom:0;height:42%;
+  background:linear-gradient(to top,rgba(1,2,8,.82),rgba(1,2,8,.34) 46%,transparent);
+}
+#hud::after{ /* top scrim */
+  content:"";position:absolute;left:0;right:0;top:0;height:96px;
+  background:linear-gradient(to bottom,rgba(1,2,8,.62),transparent);
+}
+#hud>*{position:relative;z-index:2}
+.chrome{transition:opacity .5s ease, transform .5s ease}
+body.hudhide .chrome{opacity:0;pointer-events:none!important}
+
+/* ---- top bar ---- */
+#topbar{position:absolute;top:0;left:0;right:0;height:54px;display:flex;align-items:center;
+  justify-content:space-between;padding:0 clamp(12px,2.4vw,26px);pointer-events:auto}
+#brand{font-size:12px;letter-spacing:.32em;color:var(--dim);text-transform:uppercase;white-space:nowrap}
+#brand b{color:var(--ink);font-weight:600;letter-spacing:.14em;font-family:var(--serif);font-size:14px;margin-right:10px}
+#ageRead{position:absolute;left:50%;transform:translateX(-50%);font-size:12.5px;color:var(--dim);
+  letter-spacing:.06em;font-variant-numeric:tabular-nums;white-space:nowrap;
+  background:var(--glass);border:1px solid var(--line);padding:6px 14px;border-radius:999px;
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+#ageRead b{color:var(--amber);font-weight:600}
+#topbtns{display:flex;gap:8px}
+
+/* ---- icon buttons ---- */
+.ibtn{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;
+  background:var(--glass);border:1px solid var(--line);color:var(--dim);
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);transition:.18s}
+.ibtn:hover{color:var(--ink);border-color:rgba(150,190,255,.4);box-shadow:0 0 14px rgba(110,160,255,.18)}
+.ibtn svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.ibtn .fillme{fill:currentColor;stroke:none}
+.ibtn.txt{width:auto;padding:0 12px;font-size:12.5px;letter-spacing:.1em;font-weight:600}
+
+/* ---- inflation "no center" note ---- */
+#inflNote{position:absolute;top:68px;right:clamp(12px,2.4vw,26px);width:248px;padding:12px 14px;
+  background:var(--glass);border:1px solid var(--line);border-radius:14px;
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  opacity:0;transform:translateY(-8px);transition:.6s ease;pointer-events:none}
+body[data-stage="1"] #inflNote{opacity:1;transform:none}
+#inflNote .demo{display:flex;align-items:center;justify-content:center;gap:12px;height:34px;
+  border-bottom:1px dashed var(--line);margin-bottom:8px;animation:stretchGap 2.8s ease-in-out infinite alternate}
+#inflNote .demo i{width:8px;height:8px;border-radius:50%;background:var(--violet);box-shadow:0 0 8px var(--violet);flex:none}
+#inflNote .demo i:nth-child(2){background:var(--cyan);box-shadow:0 0 8px var(--cyan)}
+#inflNote .demo i:nth-child(3){background:var(--amber);box-shadow:0 0 8px var(--amber)}
+@keyframes stretchGap{from{gap:10px}to{gap:46px}}
+#inflNote p{font-size:11.5px;line-height:1.55;color:var(--dim)}
+#inflNote p b{color:var(--ink)}
+
+/* ---- science chip (per-stage data) ---- */
+#chip{position:absolute;right:clamp(12px,2.4vw,26px);bottom:128px;max-width:300px;
+  background:var(--glass);border:1px solid var(--line);border-left:2px solid var(--amber);
+  border-radius:12px;padding:10px 14px;font-size:12.5px;line-height:1.6;color:var(--dim);
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  opacity:0;transform:translateY(10px);transition:.6s ease;pointer-events:none}
+#chip.on{opacity:1;transform:none}
+#chip b{color:var(--ink)} #chip em{color:var(--amber);font-style:normal;font-variant-numeric:tabular-nums}
+
+/* ---- lower third: stage title + subtitles ---- */
+#lower{position:absolute;left:clamp(16px,4.5vw,72px);bottom:128px;max-width:min(640px,72vw)}
+#stEyebrow{display:flex;align-items:baseline;gap:12px;margin-bottom:6px}
+#stNum{font-family:var(--serif);font-size:15px;color:var(--faint);letter-spacing:.2em;font-variant-numeric:tabular-nums}
+#stAge{font-size:11.5px;letter-spacing:.08em;color:var(--amber);border:1px solid rgba(255,196,118,.35);
+  border-radius:999px;padding:3px 10px;font-variant-numeric:tabular-nums;background:rgba(255,196,118,.06)}
+#stName{font-family:var(--serif);font-weight:700;font-size:clamp(23px,3.4vw,36px);line-height:1.16;
+  letter-spacing:.04em;text-shadow:0 2px 22px rgba(0,0,10,.8)}
+#stNameEn{font-size:clamp(11px,1.1vw,13px);letter-spacing:.3em;text-transform:uppercase;color:var(--cyan);
+  margin-top:5px;text-shadow:0 1px 10px rgba(0,0,10,.9)}
+#subZh{margin-top:12px;font-size:clamp(14px,1.5vw,16.5px);line-height:1.65;color:var(--ink);
+  text-shadow:0 1px 12px rgba(0,0,10,.95)}
+#subEn{margin-top:5px;font-size:clamp(12px,1.2vw,13.5px);line-height:1.6;color:var(--dim);
+  text-shadow:0 1px 12px rgba(0,0,10,.95)}
+.swap{animation:rise .8s cubic-bezier(.2,.7,.2,1)}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+body[data-lang="zh"] .t-en{display:none}
+body[data-lang="en"] .t-zh{display:none}
+body[data-lang="en"] #stName{font-family:var(--sans);letter-spacing:.02em;font-size:clamp(21px,3vw,32px)}
+
+/* ---- control rail ---- */
+#ctrl{position:absolute;left:50%;transform:translateX(-50%);bottom:16px;
+  width:min(1180px,calc(100% - 24px));pointer-events:auto;
+  background:var(--glass2);border:1px solid var(--line);border-radius:18px;
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  box-shadow:0 10px 40px rgba(0,0,8,.5);
+  display:flex;align-items:center;gap:10px;padding:10px 14px;flex-wrap:wrap}
+#transport{display:flex;gap:6px;align-items:center}
+#btnPlay{width:46px;height:46px;border-radius:14px;color:var(--ink);
+  background:linear-gradient(135deg,rgba(125,208,255,.18),rgba(183,139,255,.18));
+  border-color:rgba(150,190,255,.4)}
+#btnPlay:hover{box-shadow:0 0 18px rgba(125,200,255,.3)}
+#btnPlay .icoPause{display:none}
+body.playing #btnPlay .icoPlay{display:none}
+body.playing #btnPlay .icoPause{display:block}
+
+/* timeline */
+#tlwrap{flex:1 1 300px;min-width:230px;padding:2px 4px 16px}
+#tl{position:relative;height:26px;cursor:pointer;touch-action:none}
+#tlTrack{position:absolute;left:0;right:0;top:11px;height:4px;border-radius:4px;
+  background:linear-gradient(90deg,rgba(183,139,255,.22),rgba(125,208,255,.18) 30%,rgba(255,196,118,.18) 62%,rgba(140,160,255,.22));overflow:visible}
+.tlseg{position:absolute;top:0;height:100%;border-left:1px solid rgba(170,190,255,.35)}
+.tlseg:first-child{border-left:none}
+#tlFill{position:absolute;left:0;top:11px;height:4px;border-radius:4px;width:0%;
+  background:linear-gradient(90deg,var(--violet),var(--cyan) 55%,var(--amber));
+  box-shadow:0 0 10px rgba(140,190,255,.55)}
+#tlHead{position:absolute;top:13px;width:14px;height:14px;border-radius:50%;margin-left:-7px;transform:translateY(-50%);
+  background:#fff;box-shadow:0 0 0 3px rgba(125,208,255,.28),0 0 16px rgba(160,210,255,.9);transition:transform .15s}
+#tl:hover #tlHead,body.dragging #tlHead{transform:translateY(-50%) scale(1.25)}
+#tlTicks{position:absolute;left:0;right:0;top:20px;height:14px;font-size:var(--tick);color:var(--faint);
+  letter-spacing:.02em;font-variant-numeric:tabular-nums}
+.tick{position:absolute;transform:translateX(-50%);white-space:nowrap}
+.tick::before{content:"";position:absolute;left:50%;top:-7px;width:1px;height:5px;background:var(--faint)}
+.tick:first-child{transform:none}.tick:first-child::before{left:0}
+.tick.last{transform:translateX(-100%)}.tick.last::before{left:auto;right:0}
+#tlTip{position:absolute;bottom:34px;transform:translateX(-50%);background:var(--glass2);
+  border:1px solid var(--line);border-radius:10px;padding:6px 11px;font-size:12px;white-space:nowrap;
+  color:var(--ink);opacity:0;transition:opacity .15s;pointer-events:none;
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+#tlTip small{color:var(--amber);margin-left:8px;font-variant-numeric:tabular-nums}
+#tl:hover #tlTip,body.dragging #tlTip{opacity:1}
+#rightbtns{display:flex;gap:6px;align-items:center}
+
+/* ---- chapters drawer ---- */
+#chapters{position:fixed;top:0;right:0;bottom:0;width:min(360px,88vw);z-index:30;
+  background:rgba(7,10,24,.92);border-left:1px solid var(--line);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  transform:translateX(102%);transition:transform .45s cubic-bezier(.2,.8,.2,1);
+  display:flex;flex-direction:column;pointer-events:auto}
+#chapters.open{transform:none}
+#chapHead{display:flex;align-items:center;justify-content:space-between;padding:18px 20px 12px;border-bottom:1px solid var(--line)}
+#chapHead h2{font-family:var(--serif);font-size:17px;letter-spacing:.12em;font-weight:600}
+#chapHead span{font-size:10.5px;letter-spacing:.3em;color:var(--faint);text-transform:uppercase;display:block;margin-top:3px}
+#chapList{overflow-y:auto;padding:8px 10px 24px;flex:1}
+.chap{display:grid;grid-template-columns:34px 1fr auto;gap:10px;align-items:center;width:100%;
+  text-align:left;padding:11px 12px;border-radius:12px;transition:.15s;border:1px solid transparent}
+.chap:hover{background:rgba(120,150,255,.08)}
+.chap.active{background:rgba(125,208,255,.1);border-color:rgba(125,208,255,.3)}
+.chap .n{font-family:var(--serif);color:var(--faint);font-size:14px;font-variant-numeric:tabular-nums}
+.chap.active .n{color:var(--cyan)}
+.chap .zh{font-size:14.5px;font-weight:600}
+.chap .en{font-size:10.5px;color:var(--faint);letter-spacing:.12em;text-transform:uppercase;margin-top:2px}
+.chap .age{font-size:10.5px;color:var(--amber);font-variant-numeric:tabular-nums;text-align:right;line-height:1.4}
+
+/* ---- settings popover ---- */
+#settings{position:fixed;top:60px;right:clamp(12px,2.4vw,26px);width:264px;z-index:31;
+  background:var(--glass2);border:1px solid var(--line);border-radius:16px;padding:8px;
+  backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+  opacity:0;transform:translateY(-8px) scale(.98);pointer-events:none;transition:.25s}
+#settings.open{opacity:1;transform:none;pointer-events:auto}
+.srow{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:10px}
+.srow:hover{background:rgba(120,150,255,.07)}
+.srow .lab{font-size:13px}.srow .lab small{display:block;font-size:10px;letter-spacing:.14em;color:var(--faint);text-transform:uppercase;margin-top:2px}
+.sw{position:relative;width:40px;height:22px;border-radius:999px;background:rgba(120,140,190,.25);
+  border:1px solid var(--line);transition:.2s;flex:none}
+.sw::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;
+  background:#aeb9d8;transition:.2s}
+.sw.on{background:linear-gradient(90deg,rgba(125,208,255,.5),rgba(183,139,255,.5));border-color:rgba(150,200,255,.5)}
+.sw.on::after{left:20px;background:#fff;box-shadow:0 0 8px rgba(160,210,255,.8)}
+#settings hr{border:none;border-top:1px solid var(--line);margin:4px 10px}
+
+/* ---- intro / title screen ---- */
+#intro{position:fixed;inset:0;z-index:40;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;text-align:center;padding:24px;
+  background:radial-gradient(120% 90% at 50% 110%,rgba(35,20,70,.55),transparent 60%),rgba(1,2,9,.55);
+  backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);
+  transition:opacity 1.1s ease;pointer-events:auto}
+#intro.gone{opacity:0;pointer-events:none}
+#introOver{font-size:11px;letter-spacing:.46em;color:var(--cyan);text-transform:uppercase;margin-bottom:26px}
+#introOver::before,#introOver::after{content:"—";color:var(--faint);margin:0 14px}
+#introH1{font-family:var(--serif);font-weight:700;font-size:clamp(40px,7.2vw,84px);letter-spacing:.1em;
+  line-height:1.1;background:linear-gradient(100deg,#fdfaff 10%,var(--cyan) 38%,var(--violet) 62%,var(--amber) 92%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 4px 30px rgba(120,140,255,.25))}
+#introH2{font-family:var(--serif);font-size:clamp(16px,2.4vw,24px);letter-spacing:.42em;color:var(--ink);
+  margin-top:18px;text-indent:.42em}
+#introEn{font-size:clamp(10px,1.2vw,12.5px);letter-spacing:.34em;color:var(--dim);text-transform:uppercase;
+  margin-top:16px;max-width:920px;line-height:2}
+#btnStart{margin-top:44px;padding:16px 44px;border-radius:999px;font-size:16px;letter-spacing:.22em;
+  color:var(--ink);background:linear-gradient(135deg,rgba(125,208,255,.14),rgba(183,139,255,.14));
+  border:1px solid rgba(150,200,255,.45);position:relative;transition:.25s;font-weight:600}
+#btnStart small{display:block;font-size:10px;letter-spacing:.3em;color:var(--dim);margin-top:5px;text-transform:uppercase}
+#btnStart:hover{transform:translateY(-2px);box-shadow:0 0 0 1px rgba(170,210,255,.5),0 14px 44px rgba(120,170,255,.3);
+  background:linear-gradient(135deg,rgba(125,208,255,.24),rgba(183,139,255,.24))}
+#introHint{margin-top:26px;font-size:12px;color:var(--dim);letter-spacing:.08em}
+#introFoot{position:absolute;bottom:22px;left:0;right:0;font-size:10.5px;letter-spacing:.14em;color:var(--faint)}
+
+/* ---- end card ---- */
+#endcard{position:fixed;inset:0;z-index:35;display:flex;align-items:center;justify-content:center;
+  background:rgba(2,3,12,.4);opacity:0;pointer-events:none;transition:opacity .9s}
+#endcard.on{opacity:1;pointer-events:auto}
+#endbox{background:var(--glass2);border:1px solid var(--line);border-radius:22px;padding:38px 44px;
+  text-align:center;max-width:480px;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+#endbox h2{font-family:var(--serif);font-size:25px;letter-spacing:.14em;margin-bottom:8px}
+#endbox p{font-size:13px;color:var(--dim);line-height:1.8;letter-spacing:.04em}
+#endbox .row{display:flex;gap:12px;justify-content:center;margin-top:26px;flex-wrap:wrap}
+.pill{padding:11px 26px;border-radius:999px;border:1px solid rgba(150,200,255,.45);font-size:13.5px;
+  letter-spacing:.14em;transition:.2s;background:rgba(125,208,255,.08)}
+.pill:hover{background:rgba(125,208,255,.18);box-shadow:0 0 18px rgba(125,200,255,.25)}
+.pill.ghost{border-color:var(--line);background:none;color:var(--dim)}
+
+#toast{position:fixed;bottom:108px;left:50%;transform:translateX(-50%) translateY(10px);z-index:50;
+  background:var(--glass2);border:1px solid var(--line);border-radius:12px;padding:10px 18px;
+  font-size:12.5px;color:var(--ink);opacity:0;transition:.35s;pointer-events:none;white-space:nowrap}
+#toast.on{opacity:1;transform:translateX(-50%)}
+
+/* ---- responsive ---- */
+@media (max-width:860px){
+  .tick[data-min]{display:none}
+  #brand span{display:none}
+  #inflNote{width:212px;top:60px}
+}
+@media (max-width:640px){
+  :root{--tick:10px}
+  #topbar{height:48px}
+  #ageRead{position:static;transform:none;margin:0 8px;flex:1;text-align:center;overflow:hidden;text-overflow:ellipsis;font-size:11px;padding:5px 8px}
+  #brand b{font-size:12px;margin-right:0}
+  #brand{letter-spacing:.18em}
+  #ctrl{gap:6px;padding:8px 10px 6px;border-radius:16px}
+  #tlwrap{order:-1;flex-basis:100%;padding:4px 6px 18px}
+  #transport{flex:1;justify-content:flex-start}
+  #rightbtns{justify-content:flex-end}
+  .ibtn{width:36px;height:36px}
+  #btnPlay{width:42px;height:42px}
+  #lower{left:16px;right:16px;max-width:none;bottom:148px}
+  #chip{display:none}
+  #subEn{display:none}
+  body[data-lang="en"] #subEn{display:block}
+  #inflNote{right:12px;left:auto}
+}
+@media (prefers-reduced-motion:reduce){
+  #inflNote .demo{animation:none;gap:30px}
+  .swap{animation:none}
+}
+</style>
+</head>
+<body data-lang="both" data-stage="-1">
+<canvas id="cv" aria-label="宇宙演化动画 Cosmic evolution animation"></canvas>
+
+<div id="hud">
+  <div id="topbar" class="chrome">
+    <div id="brand"><b>宇宙的诞生</b><span>BIRTH OF THE UNIVERSE</span></div>
+    <div id="ageRead">宇宙年龄 <b>—</b></div>
+    <div id="topbtns">
+      <button class="ibtn" id="btnSettings" title="设置 Settings" aria-label="设置">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.8v2.6M12 18.6v2.6M2.8 12h2.6M18.6 12h2.6M5.5 5.5l1.9 1.9M16.6 16.6l1.9 1.9M18.5 5.5l-1.9 1.9M7.4 16.6l-1.9 1.9"/></svg>
+      </button>
+      <button class="ibtn" id="btnFull" title="全屏 Fullscreen (F)" aria-label="全屏">
+        <svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <div id="inflNote">
+    <div class="demo" aria-hidden="true"><i></i><i></i><i></i></div>
+    <p class="t-zh"><b>没有中心的膨胀</b> — 不是物质在空间中爆开，而是空间本身在伸展：任意两点间的距离都在同时增大。</p>
+    <p class="t-en" style="margin-top:6px"><b>Expansion without a center</b> — space itself stretches; every distance grows at once.</p>
+  </div>
+
+  <div id="chip"></div>
+
+  <div id="lower">
+    <div id="stEyebrow"><span id="stNum">01 / 11</span><span id="stAge">—</span></div>
+    <div id="stName">—</div>
+    <div id="stNameEn">—</div>
+    <div id="subZh" class="t-zh">—</div>
+    <div id="subEn" class="t-en">—</div>
+  </div>
+
+  <div id="ctrl" class="chrome">
+    <div id="transport">
+      <button class="ibtn" id="btnPrev" title="上一阶段 Previous (←)" aria-label="上一阶段">
+        <svg viewBox="0 0 24 24"><path d="M6 5v14" /><path class="fillme" d="M19 5.8v12.4L9 12z"/></svg>
+      </button>
+      <button class="ibtn" id="btnPlay" title="播放 / 暂停 Play / Pause (空格)" aria-label="播放或暂停">
+        <svg class="icoPlay" viewBox="0 0 24 24"><path class="fillme" d="M7.5 4.8v14.4L20 12z"/></svg>
+        <svg class="icoPause" viewBox="0 0 24 24"><path d="M8.5 5v14M15.5 5v14" stroke-width="2.6"/></svg>
+      </button>
+      <button class="ibtn" id="btnNext" title="下一阶段 Next (→)" aria-label="下一阶段">
+        <svg viewBox="0 0 24 24"><path d="M18 5v14"/><path class="fillme" d="M5 5.8v12.4L15 12z"/></svg>
+      </button>
+      <button class="ibtn" id="btnReplay" title="重新播放 Replay" aria-label="重新播放">
+        <svg viewBox="0 0 24 24"><path d="M4.5 8.5A8 8 0 1 1 4 13"/><path class="fillme" d="M4 3.5v6h6z" transform="scale(.92) translate(.6 .4)"/></svg>
+      </button>
+    </div>
+    <div id="tlwrap">
+      <div id="tl" role="slider" aria-label="宇宙时间轴 Cosmic timeline" tabindex="0">
+        <div id="tlTrack"></div>
+        <div id="tlFill"></div>
+        <div id="tlHead"></div>
+        <div id="tlTicks"></div>
+        <div id="tlTip"></div>
+      </div>
+    </div>
+    <div id="rightbtns">
+      <button class="ibtn txt" id="btnLang" title="字幕语言切换 Subtitle language">双</button>
+      <button class="ibtn" id="btnChapters" title="章节 Chapters (C)" aria-label="章节">
+        <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/><circle class="fillme" cx="19.4" cy="18" r="1.6"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<aside id="chapters" aria-label="章节导航">
+  <div id="chapHead">
+    <div><h2>宇宙演化 · 11 章</h2><span>Chapters of cosmic time</span></div>
+    <button class="ibtn" id="btnChapClose" aria-label="关闭"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  </div>
+  <div id="chapList"></div>
+</aside>
+
+<div id="settings" role="dialog" aria-label="设置">
+  <div class="srow"><div class="lab">中文解说<small>Chinese narration</small></div><button class="sw" id="swNarZh" role="switch" aria-checked="false"></button></div>
+  <div class="srow"><div class="lab">英文解说<small>English narration</small></div><button class="sw" id="swNarEn" role="switch" aria-checked="false"></button></div>
+  <hr>
+  <div class="srow"><div class="lab">背景音乐<small>Ambient music</small></div><button class="sw on" id="swMusic" role="switch" aria-checked="true"></button></div>
+  <div class="srow"><div class="lab">音效<small>Sound effects</small></div><button class="sw on" id="swSfx" role="switch" aria-checked="true"></button></div>
+</div>
+
+<div id="intro">
+  <div id="introOver">沉浸式宇宙演化 · An Interactive Cosmic Timeline</div>
+  <h1 id="introH1">宇宙的诞生</h1>
+  <div id="introH2">从量子涨落到星辰大海</div>
+  <div id="introEn">Birth of the Universe — From Quantum Fluctuations to the Cosmic Web</div>
+  <button id="btnStart">开启宇宙之旅<small>Begin the Journey</small></button>
+  <div id="introHint">🎧 建议开启声音 · 全程约 2 分 30 秒 · Best with sound on</div>
+  <div id="introFoot">依据 ΛCDM 标准宇宙学模型 · 时间轴为分段对数刻度 · Times shown on a segmented logarithmic scale</div>
+</div>
+
+<div id="endcard">
+  <div id="endbox">
+    <h2>故事仍在继续</h2>
+    <p>从 10⁻⁴³ 秒到 138 亿年——你身体里的每一个原子，都来自这段历史。<br>The story continues. Every atom in you was forged along this timeline.</p>
+    <div class="row">
+      <button class="pill" id="btnAgain">↻ 重新播放 · Replay</button>
+      <button class="pill ghost" id="btnBrowse">浏览章节 · Chapters</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+<noscript><div style="position:fixed;inset:0;display:grid;place-items:center;color:#fff">需要启用 JavaScript 才能播放本动画。Enable JavaScript to play.</div></noscript>
+
+<script>
+'use strict';
+/* =================================================================
+   PART 2 · DATA — stages, narration, timeline ticks, science chips
+   ================================================================= */
+const YR = 3.156e7; // seconds per year
+
+const STAGES = [
+{key:'planck', zh:'普朗克极早期', en:'The Planck Era',
+ ageZh:'< 10⁻⁴³ 秒', ageEn:'< 10⁻⁴³ s', t0:1e-43, t1:1e-36, dur:12,
+ descZh:'宇宙处于难以想象的高温高密状态，已知物理定律在此失效，时间与空间的概念刚刚成形。',
+ descEn:'The universe is unimaginably hot and dense; known physics breaks down as space and time take shape.',
+ narrZh:'一切，从一个难以想象的炽热而致密的状态开始。在最初的十的负四十三次方秒里，温度高得连时间和空间都尚未定形，我们已知的物理定律，在这里全部失效。',
+ narrEn:'Everything began in a state of unimaginable heat and density. In the first ten to the minus forty-third of a second, it was so hot that space and time themselves had yet to take shape. The laws of physics as we know them simply break down here.'},
+
+{key:'inflation', zh:'暴胀时期', en:'Inflation',
+ ageZh:'约 10⁻³⁶–10⁻³² 秒', ageEn:'~10⁻³⁶–10⁻³² s', t0:1e-36, t1:1e-32, dur:14,
+ descZh:'空间本身经历极其迅速的指数膨胀——不是物质炸向四周，而是任意两点间的距离同时拉大。',
+ descEn:'Space itself expands exponentially — not matter exploding outward, but every distance stretching at once.',
+ narrZh:'大约十的负三十六次方秒，宇宙经历了一次惊人的暴胀：空间本身以指数方式急剧伸展。请注意，这不是一场发生在空间里的爆炸。膨胀没有中心，任意两点之间的距离都在同时增大。微小的量子涨落被拉伸放大，成为日后星系的种子。',
+ narrEn:'At around ten to the minus thirty-six seconds, the universe underwent inflation: space itself stretched exponentially. This was not an explosion in space. There is no center; every distance grew at once. Tiny quantum fluctuations were stretched vast, becoming the seeds of future galaxies.'},
+
+{key:'particles', zh:'基本粒子形成', en:'Elementary Particles',
+ ageZh:'约 10⁻³²–10⁻⁶ 秒', ageEn:'~10⁻³²–10⁻⁶ s', t0:1e-32, t1:1e-6, dur:12,
+ descZh:'暴胀的能量转化为夸克、电子、光子等基本粒子，形成一锅炽热翻滚的"粒子汤"。',
+ descEn:'Inflation\'s energy condenses into quarks, electrons and photons — a seething soup of fundamental particles.',
+ narrZh:'暴胀结束后，巨大的能量转化为最早的物质：夸克、电子、中微子和光子，构成一锅炽热翻滚的基本粒子汤。粒子不断产生、碰撞、湮灭，光被困在其中，无法直线传播。',
+ narrEn:'As inflation ended, its enormous energy condensed into the first matter: quarks, electrons, neutrinos and photons. A seething soup of particles, endlessly created, colliding and annihilating, with light trapped inside.'},
+
+{key:'nucleons', zh:'质子与中子出现', en:'Protons & Neutrons',
+ ageZh:'约 10⁻⁶ 秒', ageEn:'~10⁻⁶ s', t0:1e-6, t1:10, dur:12,
+ descZh:'温度降至约一万亿开尔文，夸克被强相互作用三个一组禁闭起来，结合成质子和中子。',
+ descEn:'At about a trillion kelvin, quarks are confined in triplets by the strong force, forming protons and neutrons.',
+ narrZh:'诞生后约百万分之一秒，温度降到一万亿开尔文左右。夸克失去了自由：强相互作用把它们三个一组牢牢禁闭，质子和中子就此诞生。构成你我身体的原子核材料，在这一刻已经准备就绪。',
+ narrEn:'About a microsecond in, the temperature fell to roughly a trillion kelvin. Quarks lost their freedom, bound in threes by the strong force into protons and neutrons. The raw material of every atomic nucleus in your body was ready at this moment.'},
+
+{key:'bbn', zh:'原初核合成', en:'Big Bang Nucleosynthesis',
+ ageZh:'约 10 秒 – 3 分钟', ageEn:'~10 s – 3 min', t0:10, t1:180, dur:13,
+ descZh:'整个宇宙化作一座核熔炉，质子与中子聚变出氘和氦——按质量约 75% 是氢、25% 是氦。',
+ descEn:'The whole universe becomes a fusion furnace, forging deuterium and helium — about 75% hydrogen, 25% helium by mass.',
+ narrZh:'从大约第十秒到第三分钟，整个宇宙就是一座巨大的核熔炉。质子和中子聚变成最轻的原子核，氘和氦。短短几分钟后熔炉熄火，留下约百分之七十五的氢和百分之二十五的氦。这份最初的配方，至今仍写在恒星和星系之中。',
+ narrEn:'From about ten seconds to three minutes, the entire universe was a fusion furnace. Protons and neutrons fused into the lightest nuclei: deuterium and helium. When the furnace shut down minutes later, it left roughly seventy-five percent hydrogen and twenty-five percent helium — a recipe still written across the stars today.'},
+
+{key:'recomb', zh:'中性原子形成', en:'Recombination',
+ ageZh:'约 38 万年', ageEn:'~380,000 yr', t0:180, t1:1.2e13, dur:13,
+ descZh:'宇宙冷却到约 3000 开尔文，电子与原子核结合成中性原子，迷雾散去，宇宙变得透明。',
+ descEn:'Cooled to ~3000 K, electrons join nuclei to form neutral atoms — the fog lifts and the universe turns transparent.',
+ narrZh:'三十八万年过去，宇宙冷却到约三千开尔文。电子终于被原子核捕获，结合成中性的氢原子和氦原子。困住光的迷雾就此散开，宇宙第一次变得透明。',
+ narrEn:'After three hundred eighty thousand years, the universe had cooled to about three thousand kelvin. Electrons were finally captured by nuclei, forming neutral hydrogen and helium. The fog that had trapped light dissolved, and the universe became transparent for the first time.'},
+
+{key:'cmb', zh:'微波背景释放', en:'The CMB Released',
+ ageZh:'约 38 万年', ageEn:'~380,000 yr', t0:1.2e13, t1:1.5e13, dur:12,
+ descZh:'第一束自由传播的光从"最后散射面"出发，如今已冷却为 2.725 K 的宇宙微波背景。',
+ descEn:'The first free-streaming light departs the last-scattering surface — today the 2.725 K cosmic microwave background.',
+ narrZh:'就在那一刻，第一束自由的光从四面八方同时出发，奔向未来。一百三十八亿年后，它仍然弥漫在整个天空，只是已冷却到约 2.7 开尔文。这就是宇宙微波背景辐射，大爆炸留下的余晖。',
+ narrEn:'At that moment, the first free light set out in every direction at once. Thirteen point eight billion years later it still fills the entire sky, cooled to about 2.7 kelvin: the cosmic microwave background, the afterglow of the Big Bang.'},
+
+{key:'dark', zh:'黑暗时代', en:'The Dark Ages',
+ ageZh:'38 万年 – 约 1 亿年', ageEn:'380,000 – ~100 million yr', t0:1.5e13, t1:3.15e15, dur:12,
+ descZh:'宇宙中尚无恒星发光；黑暗里，引力沿着暗物质纤维悄悄聚拢物质，孕育未来的结构。',
+ descEn:'No stars shine yet; in the dark, gravity quietly gathers matter along filaments of dark matter.',
+ narrZh:'随后，宇宙陷入漫长的黑暗时代，没有任何恒星发光。但黑暗中并不平静：引力正以暗物质纤维为骨架，悄悄把氢气聚拢到一起，为第一缕星光积蓄力量。',
+ narrEn:'Then came the long Dark Ages. No stars shone anywhere. But the darkness was not still: gravity, guided by a skeleton of dark matter, was quietly herding hydrogen together, gathering strength for the first starlight.'},
+
+{key:'firststars', zh:'第一批恒星点亮', en:'The First Stars',
+ ageZh:'约 1–2 亿年', ageEn:'~100–200 million yr', t0:3.15e15, t1:6.3e15, dur:14,
+ descZh:'最致密的气体云在自身引力下坍缩点燃，第一代恒星以炽烈的紫外光照亮宇宙，黑暗时代落幕。',
+ descEn:'The densest gas clouds collapse and ignite — the first stars flood the cosmos with ultraviolet light.',
+ narrZh:'大约一到两亿年后，最致密的气体云在自身引力下坍缩、点燃。第一代恒星诞生了。它们巨大、炽热、明亮，用强烈的紫外光重新电离周围的气体，亲手终结了黑暗时代。',
+ narrEn:'After one to two hundred million years, the densest clouds collapsed under their own gravity and ignited. The first stars were born: massive, searing, brilliant, re-ionizing the gas around them and bringing the Dark Ages to an end.'},
+
+{key:'galaxies', zh:'星系与宇宙网', en:'Galaxies & the Cosmic Web',
+ ageZh:'约 2 亿 – 10 亿年', ageEn:'~0.2 – 1 billion yr', t0:6.3e15, t1:3.156e16, dur:14,
+ descZh:'恒星聚集成星系，星系沿暗物质纤维排列、碰撞、并合，编织出最大尺度的宇宙网。',
+ descEn:'Stars gather into galaxies that align and merge along dark-matter filaments, weaving the cosmic web.',
+ narrZh:'恒星成群结队，聚集成最早的星系；星系又沿着暗物质纤维排列、碰撞、并合。在之后的数亿年里，引力把宇宙编织成一张宏伟的宇宙网。这是自然界中最大的结构。',
+ narrEn:'Stars gathered into the first galaxies, and galaxies lined up along the dark-matter filaments, colliding and merging. Over the following hundreds of millions of years, gravity wove the universe into the magnificent cosmic web — the largest structure in nature.'},
+
+{key:'today', zh:'今天的宇宙', en:'The Universe Today',
+ ageZh:'138 亿年', ageEn:'13.8 billion yr', t0:3.156e16, t1:4.354e17, dur:14,
+ descZh:'在暗能量驱动下空间仍在加速膨胀：暗能量约占 68%、暗物质约 27%、普通物质仅约 5%。',
+ descEn:'Space still accelerates outward, driven by dark energy: ~68% dark energy, ~27% dark matter, ~5% ordinary matter.',
+ narrZh:'今天，距离那个炽热的开端已经过去一百三十八亿年。在暗能量的驱动下，空间仍在加速膨胀，数千亿个星系随之渐行渐远。而你身体里的每一个原子，都来自这段历史。我们都是星辰的后裔。',
+ narrEn:'Today, thirteen point eight billion years have passed since that hot beginning. Driven by dark energy, space keeps accelerating, carrying hundreds of billions of galaxies apart. And every atom in your body comes from this story. We are all descendants of the stars.'}
+];
+
+const TOTAL = STAGES.reduce((a,s)=>a+s.dur,0);
+const STARTS = []; { let acc=0; for(const s of STAGES){ STARTS.push(acc); acc+=s.dur; } }
+
+/* Timeline tick labels — placed at stage boundaries (b = boundary index 0..11).
+   min:1 → hidden on narrow screens via CSS [data-min]. */
+const TICKS = [
+ {b:0,  zh:'10⁻⁴³秒', en:'10⁻⁴³ s'},
+ {b:1,  zh:'10⁻³⁶秒', en:'10⁻³⁶ s', min:1},
+ {b:3,  zh:'10⁻⁶秒',  en:'10⁻⁶ s',  min:1},
+ {b:5,  zh:'3分钟',   en:'3 min', min:1},
+ {b:6,  zh:'38万年',  en:'380 kyr'},
+ {b:8,  zh:'1亿年',   en:'100 Myr'},
+ {b:10, zh:'10亿年',  en:'1 Gyr', min:1},
+ {b:11, zh:'138亿年', en:'13.8 Gyr', last:1}
+];
+
+/* Science chips shown per stage (bottom-right). */
+const CHIPS = {
+ 4:'<b><span class="t-zh">原初核合成配方</span><span class="t-en">Primordial recipe</span></b><br><em>H ≈ 75%</em> · <em>He ≈ 25%</em> <span class="t-zh">（按质量）</span><span class="t-en alt">(by mass)</span>',
+ 6:'<b><span class="t-zh">宇宙微波背景</span><span class="t-en">Cosmic microwave background</span></b><br><span class="t-zh">今日温度</span><span class="t-en alt">Temperature today</span> <em>2.725 K</em>',
+ 10:'<b><span class="t-zh">今天的宇宙成分</span><span class="t-en">Composition today</span></b><br><em><span class="t-zh">暗能量</span><span class="t-en alt">Dark energy</span> 68%</em> · <em><span class="t-zh">暗物质</span><span class="t-en alt">Dark matter</span> 27%</em> · <em><span class="t-zh">普通物质</span><span class="t-en alt">Matter</span> 5%</em>'
+};
+/* =================================================================
+   PART 3 · ENGINE — rendering, playback, audio, narration, UI
+   ================================================================= */
+(function(){
+'use strict';
+/* ---------- tiny utils ---------- */
+const TAU=Math.PI*2;
+const clamp=(v,a,b)=>v<a?a:(v>b?b:v);
+const lerp=(a,b,t)=>a+(b-a)*t;
+const sm=x=>{x=clamp(x,0,1);return x*x*(3-2*x);};
+const fract=x=>x-Math.floor(x);
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+const n1=x=>fract(Math.sin(x*127.1)*43758.5453);
+const SUP={'-':'⁻','0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹'};
+const sup=n=>String(n).split('').map(c=>SUP[c]||'').join('');
+
+/* ---------- environment / QA flags ---------- */
+const QP=new URLSearchParams(location.search);
+const QA=QP.get('qa')==='1';
+const RM=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+let AUDIO_OK=!QA;
+
+/* ---------- canvas ---------- */
+const cv=document.getElementById('cv');
+const ctx=cv.getContext('2d');
+let W=0,H=0,DPR=1,VIG=null;
+function resize(){
+  DPR=clamp(window.devicePixelRatio||1,1,1.75);
+  W=window.innerWidth;H=window.innerHeight;
+  cv.width=Math.round(W*DPR);cv.height=Math.round(H*DPR);
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  VIG=document.createElement('canvas');VIG.width=Math.max(2,Math.round(W/2));VIG.height=Math.max(2,Math.round(H/2));
+  const vx=VIG.getContext('2d');
+  const g=vx.createRadialGradient(VIG.width/2,VIG.height/2,Math.min(VIG.width,VIG.height)*.32,VIG.width/2,VIG.height/2,Math.max(VIG.width,VIG.height)*.74);
+  g.addColorStop(0,'rgba(1,2,8,0)');g.addColorStop(1,'rgba(1,2,8,.62)');
+  vx.fillStyle=g;vx.fillRect(0,0,VIG.width,VIG.height);
+}
+window.addEventListener('resize',resize);resize();
+
+/* ---------- sprites ---------- */
+function makeGlow(r,g,b,sz){
+  sz=sz||64;const c=document.createElement('canvas');c.width=c.height=sz;const x=c.getContext('2d');
+  const gr=x.createRadialGradient(sz/2,sz/2,0,sz/2,sz/2,sz/2);
+  gr.addColorStop(0,'rgba(255,255,255,1)');
+  gr.addColorStop(.22,`rgba(${r},${g},${b},.95)`);
+  gr.addColorStop(.55,`rgba(${r},${g},${b},.32)`);
+  gr.addColorStop(1,`rgba(${r},${g},${b},0)`);
+  x.fillStyle=gr;x.fillRect(0,0,sz,sz);return c;
+}
+const GL={
+  white:makeGlow(235,238,255),violet:makeGlow(185,150,255),cyan:makeGlow(130,215,255),
+  blue:makeGlow(120,160,255),gold:makeGlow(255,210,130),orange:makeGlow(255,160,80),
+  ember:makeGlow(255,120,70),red:makeGlow(255,90,70),amber:makeGlow(255,196,118),
+  qC:makeGlow(95,212,255),qM:makeGlow(255,110,216),qG:makeGlow(255,209,102)
+};
+/* star spike sprite */
+const SPIKE=(function(){
+  const s=96,c=document.createElement('canvas');c.width=c.height=s;const x=c.getContext('2d');
+  x.drawImage(makeGlow(190,215,255,64),s/2-20,s/2-20,40,40);
+  x.drawImage(makeGlow(255,255,255,64),s/2-9,s/2-9,18,18);
+  x.translate(s/2,s/2);
+  for(let i=0;i<4;i++){
+    const L=i%2?30:44;
+    const g=x.createLinearGradient(0,0,0,-L);
+    g.addColorStop(0,'rgba(255,255,255,.95)');g.addColorStop(1,'rgba(160,200,255,0)');
+    x.fillStyle=g;x.beginPath();x.moveTo(-2.6,0);x.lineTo(0,-L);x.lineTo(2.6,0);x.closePath();x.fill();
+    x.rotate(Math.PI/2);
+  }
+  x.rotate(Math.PI/4);
+  for(let i=0;i<4;i++){
+    const g=x.createLinearGradient(0,0,0,-18);
+    g.addColorStop(0,'rgba(255,255,255,.55)');g.addColorStop(1,'rgba(160,200,255,0)');
+    x.fillStyle=g;x.beginPath();x.moveTo(-1.6,0);x.lineTo(0,-18);x.lineTo(1.6,0);x.closePath();x.fill();
+    x.rotate(Math.PI/2);
+  }
+  return c;
+})();
+/* galaxy sprites */
+function makeGalaxy(seed){
+  const s=220,c=document.createElement('canvas');c.width=c.height=s;const x=c.getContext('2d');
+  const Rg=mulberry32(seed*7919+11);
+  x.translate(s/2,s/2);
+  x.globalCompositeOperation='lighter';
+  x.drawImage(GL.amber,-26,-26,52,52);
+  x.drawImage(GL.white,-10,-10,20,20);
+  const arms=2,per=460;
+  for(let a=0;a<arms;a++){
+    const off=a*Math.PI+Rg()*.5;
+    for(let i=0;i<per;i++){
+      const t=i/per;
+      const th=t*3.45*Math.PI+off;
+      let r=4.6*Math.exp(.205*th);
+      if(r>100)break;
+      const jit=(Rg()+Rg()-1)*(2.5+7*t);
+      const px=Math.cos(th)*r+Math.cos(th+Math.PI/2)*jit;
+      const py=Math.sin(th)*r+Math.sin(th+Math.PI/2)*jit;
+      let cr,cg,cb;
+      if(t<.35){cr=255;cg=222;cb=185;}else if(t<.7){cr=205;cg=208;cb=255;}else{cr=145;cg=175;cb=255;}
+      const al=(.5-.34*t)*(.6+.4*Rg());
+      const sz=(2.3-1.5*t)*(0.7+Rg()*.7);
+      x.fillStyle=`rgba(${cr},${cg},${cb},${al})`;
+      x.fillRect(px-sz/2,py-sz/2,sz,sz);
+    }
+  }
+  for(let i=0;i<55;i++){
+    const an=Rg()*TAU,r=18+Rg()*86;
+    x.fillStyle=`rgba(190,205,255,${.12+.18*Rg()})`;
+    const sz=.8+Rg()*1.4;
+    x.fillRect(Math.cos(an)*r,Math.sin(an)*r,sz,sz);
+  }
+  return c;
+}
+const SPR=[];for(let i=0;i<7;i++)SPR.push(makeGalaxy(i+3));
+
+/* ---------- noise + tinted fog / CMB ---------- */
+const NSIZE=512;
+function makeNoiseField(seed){
+  const Rn=mulberry32(seed);
+  const octs=[{c:6,a:.55},{c:12,a:.3},{c:24,a:.15}].map(o=>{
+    const g=new Float32Array(o.c*o.c);
+    for(let i=0;i<g.length;i++)g[i]=Rn();
+    return {c:o.c,a:o.a,g};
+  });
+  const out=new Float32Array(NSIZE*NSIZE);
+  for(let y=0;y<NSIZE;y++)for(let xq=0;xq<NSIZE;xq++){
+    let v=0;
+    for(const o of octs){
+      const fx=xq/NSIZE*o.c,fy=y/NSIZE*o.c;
+      const x0=Math.floor(fx)%o.c,y0=Math.floor(fy)%o.c;
+      const x1=(x0+1)%o.c,y1=(y0+1)%o.c;
+      const tx=sm(fx-Math.floor(fx)),ty=sm(fy-Math.floor(fy));
+      const i00=o.g[y0*o.c+x0],i10=o.g[y0*o.c+x1],
+            i01=o.g[y1*o.c+x0],i11=o.g[y1*o.c+x1];
+      v+=o.a*lerp(lerp(i00,i10,tx),lerp(i01,i11,tx),ty);
+    }
+    out[y*NSIZE+xq]=v;
+  }
+  return out;
+}
+const NOISE=makeNoiseField(424242);
+function tintCanvas(fn){
+  const c=document.createElement('canvas');c.width=c.height=NSIZE;
+  const x=c.getContext('2d');const im=x.createImageData(NSIZE,NSIZE);
+  for(let i=0;i<NOISE.length;i++){
+    const v=NOISE[i];const [r,g,b,a]=fn(v);const o=i*4;
+    im.data[o]=r;im.data[o+1]=g;im.data[o+2]=b;im.data[o+3]=a;
+  }
+  x.putImageData(im,0,0);return c;
+}
+function mix3(d,l,v){return [d[0]+(l[0]-d[0])*v,d[1]+(l[1]-d[1])*v,d[2]+(l[2]-d[2])*v];}
+const FOG_TINTS=[
+  [[150,120,255],[247,242,255]],
+  [[255,170,80],[255,232,185]],
+  [[230,110,50],[255,205,150]],
+  [[185,62,32],[255,155,95]],
+  [[125,32,22],[255,112,82]],
+  [[52,13,11],[165,62,46]]
+];
+const FOGS=FOG_TINTS.map(t=>tintCanvas(v=>{
+  const vv=Math.pow(v,1.15);
+  const [r,g,b]=mix3(t[0],t[1],vv);
+  return [r|0,g|0,b|0,(Math.pow(v,1.35)*255)|0];
+}));
+const CMBC=tintCanvas(v=>{
+  const stops=[[32,58,165],[105,148,215],[232,222,198],[236,140,62],[182,52,40]];
+  const p=clamp((v-.18)/.64,0,1)*(stops.length-1);
+  const i=Math.min(stops.length-2,Math.floor(p));
+  const [r,g,b]=mix3(stops[i],stops[i+1],p-i);
+  return [r|0,g|0,b|0,255];
+});
+
+/* ---------- seeded world data ---------- */
+const R=mulberry32(20260612);
+function shuffle(arr){for(let i=arr.length-1;i>0;i--){const j=(R()*(i+1))|0;const t=arr[i];arr[i]=arr[j];arr[j]=t;}return arr;}
+/* cosmic web nodes */
+const NODES=[];{
+  let tries=0;
+  while(NODES.length<96&&tries<6000){
+    tries++;
+    const x=(R()*2-1)*1.55,y=(R()*2-1)*1.55;
+    let ok=true;
+    for(const n of NODES){const dx=n.x-x,dy=n.y-y;if(dx*dx+dy*dy<.029){ok=false;break;}}
+    if(ok)NODES.push({x,y});
+  }
+}
+const EDGES=[];{
+  const seen=new Set();
+  for(let i=0;i<NODES.length;i++){
+    const d=[];
+    for(let j=0;j<NODES.length;j++){if(j===i)continue;
+      const dx=NODES[j].x-NODES[i].x,dy=NODES[j].y-NODES[i].y;
+      d.push({j,d2:dx*dx+dy*dy});
+    }
+    d.sort((a,b)=>a.d2-b.d2);
+    for(let k=0;k<3&&k<d.length;k++){
+      if(d[k].d2>.42)break;
+      const a=Math.min(i,d[k].j),b=Math.max(i,d[k].j),key=a*1000+b;
+      if(!seen.has(key)){seen.add(key);EDGES.push({a,b,born:R()*.85});}
+    }
+  }
+}
+const PERM=shuffle(NODES.map((_,i)=>i));
+/* centrality bias: stars must sit inside the S8 viewport; galaxies fill center-out */
+const BYC=NODES.map((n,i)=>({i,d:Math.max(Math.abs(n.x),Math.abs(n.y))})).sort((a,b)=>a.d-b.d).map(o=>o.i);
+const CSTAR=shuffle(BYC.filter(i=>Math.max(Math.abs(NODES[i].x),Math.abs(NODES[i].y))<.85).slice());
+const STARN=CSTAR.slice(0,32).map(ni=>({ni,ig:.06+.74*R(),sc:.55+.5*R(),tw:2+3*R(),ph:R()*TAU}));
+const GALS=shuffle(BYC.slice(0,72).slice()).map(ni=>({ni,v:(R()*7)|0,sc:.5+.95*R(),born:.04+.64*R(),
+  rs:(R()-.5)*.16*(RM?.5:1),ax:.55+.4*R(),ph0:R()*TAU,tw:1+2*R(),ph:R()*TAU}));
+const MOTES=[];for(let i=0;i<130;i++)MOTES.push({e:(R()*EDGES.length)|0,ph:R(),sp:.4+1.2*R(),sz:1.6+1.4*R()});
+const DUST=[];for(let i=0;i<260;i++)DUST.push({x:(R()*2-1)*1.55,y:(R()*2-1)*1.55,a:.25+.7*R(),sz:.7+1.3*R(),tw:1+3*R(),ph:R()*TAU});
+const MINIG=[];for(let i=0;i<50;i++)MINIG.push({x:(R()*2-1)*1.5,y:(R()*2-1)*1.5,v:(R()*7)|0,sc:.06+.09*R(),a:.45+.5*R(),rot:R()*TAU});
+/* particle field */
+const FMAX=2600;
+const POOL=[];for(let i=0;i<FMAX;i++)POOL.push({x:(R()*2-1)*1.7,y:(R()*2-1)*1.7,
+  h:R(),sz:.5+R(),w1:.6+1.6*R(),w2:.6+1.6*R(),ph1:R()*TAU,ph2:R()*TAU,tw:1.5+3*R()});
+/* photons */
+const PHOT=[];for(let i=0;i<150;i++)PHOT.push({x:R(),y:R(),ang:R()*TAU,sp:.05+.13*R(),ph:R()*TAU});
+/* events */
+function staggered(n,a,b){const idx=shuffle([...Array(n).keys()]);
+  return idx.map((k,ii)=>a+(b-a)*(ii/(n-1))+ (R()-.5)*.03);}
+const BIND=[];{const us=staggered(26,.12,.74);
+  for(let i=0;i<26;i++)BIND.push({x:(R()*2-1)*1.05,y:(R()*2-1)*1.0,u0:us[i],ph:R()*TAU});}
+const FUSE=[];{const us=staggered(20,.1,.72);
+  for(let i=0;i<20;i++)FUSE.push({x:(R()*2-1)*1.0,y:(R()*2-1)*.95,u0:us[i],ph:R()*TAU});}
+const ATOM=[];{const us=staggered(34,.1,.7);
+  for(let i=0;i<34;i++)ATOM.push({x:(R()*2-1)*1.15,y:(R()*2-1)*1.05,u0:us[i],he:R()<.25,
+    oph:R()*TAU,osp:(2+1.6*R())*(R()<.5?1:-1)});}
+
+/* ---------- per-stage visual parameters ---------- */
+const FKEYS=[
+ ['white','violet','cyan'],['violet','cyan','white'],['gold','orange','white'],
+ ['qC','qM','qG'],['ember','gold'],['red','ember'],['blue','violet'],
+ ['blue','violet'],['blue','white'],['blue','white'],['blue','white']];
+const Z={cmbA:0,gridA:0,gridLv:0,gridJit:0,phA:0,phLen:.05,phZig:0,phN:1,webA:0,webGrow:0,
+ moteA:0,starA:0,galA:0,dustA:0,nucA:0,heA:0,atomA:0,expand:1};
+const PAR=[
+u=>({...Z,bgT:[262,62,15],bgB:[268,72,6],fogIdx:0,fogA:.52,
+  gridA:.42,gridLv:.22*u,gridJit:1,
+  fieldA:.95,fieldN:1,fieldSize:1.15,fieldSpeed:1.7,fieldWob:.016,
+  phA:.22,phLen:.05,phZig:1.2,
+  camZ:1.16-.06*u,camRot:.05,camShake:1,drift:1}),
+u=>({...Z,bgT:[256,56,11],bgB:[248,66,5],fogIdx:.35,fogA:.36-.06*u,
+  gridA:1,gridLv:.22+6.4*u,gridJit:.3*(1-u),
+  fieldA:.5,fieldN:.8,fieldSize:1-.25*u,fieldSpeed:.5,fieldWob:.01,
+  phA:.08,phLen:.05,phZig:.8,
+  camZ:1,camRot:0,camShake:.15,drift:.3}),
+u=>({...Z,bgT:[40,62,10],bgB:[22,70,5],fogIdx:1+.9*u,fogA:.48,
+  gridA:Math.max(0,.5-1.3*u),gridLv:6.62+1.5*u,gridJit:.1,
+  fieldA:1,fieldN:1,fieldSize:1.05,fieldSpeed:1.35,fieldWob:.015,
+  phA:.5,phLen:.045,phZig:1.4,
+  camZ:1.1,camRot:-.03,camShake:.35,drift:.6}),
+u=>({...Z,bgT:[18,58,9],bgB:[8,64,4],fogIdx:2.2+.8*u,fogA:.4,
+  fieldA:.85-.3*u,fieldN:.8,fieldSize:.95,fieldSpeed:.9,fieldWob:.012,
+  phA:.22,phLen:.04,phZig:1.2,nucA:1,
+  camZ:1.14-.1*u,camRot:.02,camShake:.25,drift:.5}),
+u=>({...Z,bgT:[14,55,8],bgB:[4,60,3.5],fogIdx:3+.6*u,fogA:.34,
+  fieldA:.45,fieldN:.55,fieldSize:.9,fieldSpeed:.7,fieldWob:.01,
+  phA:.3,phLen:.05,phZig:1,nucA:.55,heA:1,
+  camZ:1.06,camRot:-.015,camShake:.3,drift:.4}),
+u=>({...Z,bgT:[8-118*u,46,6.5-2.5*u],bgB:[2-117*u,52,3-u],
+  fogIdx:4+.9*u,fogA:.3*(1-.85*u),
+  fieldA:.28*(1-u),fieldN:.4,fieldSize:.85,fieldSpeed:.5,fieldWob:.008,
+  phA:.1,phLen:.05,phZig:.8,nucA:.4*(1-u),atomA:1,
+  camZ:1.03,camRot:.012,camShake:.12*(1-u),drift:.3}),
+u=>({...Z,bgT:[235,46,4],bgB:[240,56,2.2],fogIdx:5,fogA:Math.max(0,.05-.2*u),
+  cmbA:(u<.3?.55*sm(u/.3):.55-.4*sm((u-.3)/.7)),
+  fieldA:.07,fieldN:.3,fieldSize:.7,fieldSpeed:.3,fieldWob:.006,
+  phA:.32*Math.min(1,u/.12)*(u<.6?1:Math.max(0,1-(u-.6)/.4)),phLen:.13,phZig:0,phN:.5,
+  atomA:Math.max(0,1-2.2*u),
+  camZ:1,camRot:.008,camShake:.05,drift:.25}),
+u=>({...Z,bgT:[238,42,2.8],bgB:[240,52,1.6],fogIdx:5,fogA:0,
+  cmbA:Math.max(0,.15-.45*u),
+  fieldA:.05,fieldN:.25,fieldSize:.6,fieldSpeed:.25,fieldWob:.005,
+  webA:.3*sm(Math.min(1,u/.55)),webGrow:u,moteA:.28*sm(Math.min(1,u/.6)),
+  camZ:.99+.03*u,camRot:.01,camShake:.03,drift:.2}),
+u=>({...Z,bgT:[235,46,3.5],bgB:[238,56,2],fogIdx:5,fogA:0,
+  fieldA:.04,fieldN:.2,fieldSize:.6,fieldSpeed:.25,fieldWob:.005,
+  webA:.34,webGrow:1,moteA:.3,starA:1,dustA:.12*u,
+  camZ:1.02-.07*u,camRot:.012,camShake:.07,drift:.25}),
+u=>({...Z,bgT:[233,50,4.5],bgB:[237,60,2.2],fogIdx:5,fogA:0,
+  fieldA:.03,fieldN:.15,fieldSize:.6,fieldSpeed:.2,fieldWob:.004,
+  webA:.38+.1*u,webGrow:1,moteA:.26,starA:.9-.55*u,galA:1,dustA:.1+.2*u,
+  camZ:.95-.23*u,camRot:.02,camShake:.04,drift:.3}),
+u=>({...Z,bgT:[232,52,5],bgB:[236,62,2.4],fogIdx:5,fogA:0,
+  fieldA:.02,fieldN:.1,fieldSize:.6,fieldSpeed:.2,fieldWob:.004,
+  webA:.4,webGrow:1,moteA:.2,starA:.3,galA:1,dustA:.35+.25*u,
+  expand:1+.12*u,camZ:.72-.14*u,camRot:.014,camShake:.02,drift:.35})
+];
+function stageOf(T){let i=0;while(i<10&&T>=STARTS[i+1])i++;return i;}
+function computeParams(T){
+  const i=stageOf(T);
+  const u=clamp((T-STARTS[i])/STAGES[i].dur,0,1);
+  let P=PAR[i](u);
+  P.fieldKeys=FKEYS[i];
+  if(u>.88&&i<10){
+    const w=sm((u-.88)/.12);
+    const N=PAR[i+1](0);
+    const Q={};
+    for(const k in P){
+      const a=P[k],b=N[k];
+      if(typeof a==='number'&&typeof b==='number')Q[k]=lerp(a,b,w);
+      else if(Array.isArray(a)&&Array.isArray(b))Q[k]=a.map((v,ii)=>lerp(v,b[ii],w));
+      else Q[k]=a;
+    }
+    Q.fieldKeys=w<.5?FKEYS[i]:FKEYS[i+1];
+    P=Q;
+  }
+  P.i=i;P.u=u;
+  return P;
+}
+
+/* ---------- camera ---------- */
+const CAM={z:1,ang:0,zT:1};
+function camSnap(P){CAM.z=P.camZ;CAM.zT=P.camZ;}
+
+/* ---------- draw helpers ---------- */
+let wallT=0;
+function drawBG(P){
+  const g=ctx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,`hsl(${P.bgT[0]},${P.bgT[1]}%,${P.bgT[2]}%)`);
+  g.addColorStop(1,`hsl(${P.bgB[0]},${P.bgB[1]}%,${P.bgB[2]}%)`);
+  ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+}
+function drawGrid(P){
+  if(P.gridA<=.004)return;
+  const lv=P.gridLv,f=lv-Math.floor(lv);
+  const base=Math.min(W,H)/8.5,s=base*Math.pow(2,f);
+  const ox=W/2+Math.sin(wallT*.07)*s*.3,oy=H/2+Math.cos(wallT*.06)*s*.3;
+  const jit=P.gridJit*6;
+  ctx.save();ctx.lineWidth=1;
+  const draw=(off,al)=>{
+    if(al<=.004)return;
+    ctx.strokeStyle=`rgba(150,170,235,${al})`;ctx.beginPath();
+    const nx=Math.ceil(W/s)+2,ny=Math.ceil(H/s)+2;
+    for(let k=-nx;k<=nx;k++){
+      const x=ox+k*s+off+( jit? (n1(k*7.31+Math.floor(off))*2-1)*jit*Math.sin(wallT*2.3+k):0);
+      ctx.moveTo(x,0);ctx.lineTo(x,H);
+    }
+    for(let k=-ny;k<=ny;k++){
+      const y=oy+k*s+off+( jit? (n1(k*5.77+40+Math.floor(off))*2-1)*jit*Math.cos(wallT*2.1+k):0);
+      ctx.moveTo(0,y);ctx.lineTo(W,y);
+    }
+    ctx.stroke();
+  };
+  draw(0,P.gridA*.55);
+  draw(s/2,P.gridA*.55*f);
+  ctx.restore();
+}
+function drawFogLayer(P){
+  if(P.fogA<=.004)return;
+  const i0=clamp(Math.floor(P.fogIdx),0,5),f=clamp(P.fogIdx-i0,0,1),i1=Math.min(5,i0+1);
+  ctx.save();ctx.globalCompositeOperation='screen';
+  const pass=(img,al,sc,ox,oy)=>{
+    if(al<=.004)return;
+    ctx.globalAlpha=al;
+    const ts=NSIZE*sc;
+    const sx=((ox%ts)+ts)%ts,sy=((oy%ts)+ts)%ts;
+    for(let x=-sx;x<W;x+=ts)for(let y=-sy;y<H;y+=ts)ctx.drawImage(img,x,y,ts,ts);
+  };
+  const o1=wallT*14,o2=-wallT*9;
+  pass(FOGS[i0],P.fogA*.7*(1-f),1.5,o1,o2*.7);
+  pass(FOGS[i1],P.fogA*.7*f,1.5,o1,o2*.7);
+  pass(FOGS[i0],P.fogA*.5*(1-f),2.4,o2,o1*.6);
+  pass(FOGS[i1],P.fogA*.5*f,2.4,o2,o1*.6);
+  ctx.restore();
+}
+function drawCMB(P){
+  if(P.cmbA<=.004)return;
+  ctx.save();ctx.globalCompositeOperation='screen';ctx.globalAlpha=P.cmbA;
+  const ts=NSIZE*1.9,ox=wallT*3%ts,oy=wallT*2%ts;
+  for(let x=-ox;x<W;x+=ts)for(let y=-oy;y<H;y+=ts)ctx.drawImage(CMBC,x,y,ts,ts);
+  ctx.restore();
+}
+function drawWeb(P){
+  if(P.webA<=.004&&P.moteA<=.004)return;
+  const S=Math.max(W,H)*.62;
+  if(P.webA>.004){
+    ctx.lineWidth=1;
+    for(const e of EDGES){
+      const al=P.webA*sm((P.webGrow-e.born)/.18);
+      if(al<=.005)continue;
+      ctx.strokeStyle=`rgba(125,145,215,${al})`;
+      ctx.beginPath();
+      ctx.moveTo(NODES[e.a].x*S,NODES[e.a].y*S);
+      ctx.lineTo(NODES[e.b].x*S,NODES[e.b].y*S);
+      ctx.stroke();
+    }
+  }
+  if(P.moteA>.004){
+    ctx.fillStyle=`rgba(165,185,255,${Math.min(1,P.moteA*1.5)})`;
+    for(const m of MOTES){
+      const e=EDGES[m.e];
+      const gr=sm((P.webGrow-e.born)/.18);
+      if(gr<=.02)continue;
+      const t=fract(m.ph+wallT*m.sp*.05);
+      const x=lerp(NODES[e.a].x,NODES[e.b].x,t)*S,
+            y=lerp(NODES[e.a].y,NODES[e.b].y,t)*S;
+      ctx.fillRect(x,y,m.sz,m.sz);
+    }
+  }
+}
+function drawGalaxies(P,gu){
+  if(P.galA<=.004)return;
+  const S=Math.max(W,H)*.62;
+  ctx.save();ctx.globalCompositeOperation='lighter';
+  for(const g of GALS){
+    const a=sm((gu-g.born)/.22);
+    if(a<=.01)continue;
+    const n=NODES[g.ni];
+    const px=235*g.sc*(.35+.65*a);
+    ctx.save();
+    ctx.translate(n.x*S,n.y*S);
+    ctx.rotate(wallT*g.rs+g.ph0);
+    ctx.scale(1,g.ax);
+    ctx.globalAlpha=P.galA*a*(.8+.2*Math.sin(wallT*g.tw*.3+g.ph));
+    ctx.drawImage(SPR[g.v],-px/2,-px/2,px,px);
+    ctx.restore();
+  }
+  ctx.restore();
+}
+let igniteSeen=new Set(),lastIg=0;
+function drawStars(P,su,liveStage){
+  if(P.starA<=.004)return;
+  const S=Math.max(W,H)*.62;
+  ctx.save();ctx.globalCompositeOperation='lighter';
+  for(let k=0;k<STARN.length;k++){
+    const st=STARN[k];const d=su-st.ig;
+    if(d<-.08)continue;
+    const n=NODES[st.ni];const x=n.x*S,y=n.y*S;
+    if(d<0){ // warm-up
+      const a=sm((d+.08)/.08)*.35*P.starA;
+      const px=40*st.sc;
+      ctx.globalAlpha=a;ctx.drawImage(GL.ember,x-px,y-px,px*2,px*2);
+      continue;
+    }
+    if(d<.05){ // ignition flash
+      const ff=1-d/.05;
+      const px=210*st.sc*(1+.8*ff);
+      ctx.globalAlpha=P.starA*(.6+.4*ff);
+      ctx.drawImage(GL.blue,x-px*.42,y-px*.42,px*.84,px*.84);
+      ctx.drawImage(SPIKE,x-px/2,y-px/2,px,px);
+      if(liveStage&&!igniteSeen.has(k)){igniteSeen.add(k);
+        if(playing&&wallT-lastIg>.25){lastIg=wallT;sIgnite();}}
+    }else{
+      const tw=.78+.22*Math.sin(wallT*st.tw+st.ph);
+      const px=122*st.sc;
+      ctx.globalAlpha=P.starA*.4*tw;
+      ctx.drawImage(GL.blue,x-px*.3,y-px*.3,px*.6,px*.6);
+      ctx.globalAlpha=P.starA*.92*tw;
+      ctx.drawImage(SPIKE,x-px/2,y-px/2,px,px);
+    }
+    if(d>=0&&d<.14){ // ionization ring
+      const t=d/.14;
+      ctx.globalAlpha=P.starA*(1-t)*.4;
+      ctx.strokeStyle='rgba(170,210,255,1)';ctx.lineWidth=1.4;
+      ctx.beginPath();ctx.arc(x,y,8+t*112,0,TAU);ctx.stroke();
+    }
+  }
+  ctx.restore();
+}
+function drawDust(P){
+  if(P.dustA<=.004)return;
+  const S=Math.max(W,H)*.62;
+  ctx.save();
+  for(const d of DUST){
+    const tw=.6+.4*Math.sin(wallT*d.tw+d.ph);
+    ctx.fillStyle=`rgba(200,215,255,${P.dustA*d.a*tw*.55})`;
+    ctx.fillRect(d.x*S,d.y*S,d.sz,d.sz);
+  }
+  ctx.globalCompositeOperation='lighter';
+  for(const m of MINIG){
+    const px=220*m.sc;
+    ctx.save();ctx.translate(m.x*S,m.y*S);ctx.rotate(m.rot);
+    ctx.globalAlpha=P.dustA*m.a*.6;
+    ctx.drawImage(SPR[m.v],-px/2,-px/2,px,px);
+    ctx.restore();
+  }
+  ctx.restore();
+}
+function drawField(P){
+  if(P.fieldA<=.004)return;
+  const S=Math.max(W,H)*.55;
+  const N=Math.min(POOL.length,Math.round(P.fieldN*FMAX*FIELD_SCALE));
+  const keys=P.fieldKeys;const nk=keys.length;
+  ctx.save();ctx.globalCompositeOperation='lighter';
+  for(let n=0;n<N;n++){
+    const p=POOL[n];
+    const wob=P.fieldWob;
+    const x=(p.x+Math.sin(wallT*p.w1*P.fieldSpeed+p.ph1)*wob)*S;
+    const y=(p.y+Math.cos(wallT*p.w2*P.fieldSpeed+p.ph2)*wob)*S;
+    const img=GL[keys[(p.h*nk)|0]||keys[0]];
+    const px=p.sz*P.fieldSize*4.6;
+    ctx.globalAlpha=P.fieldA*(.62+.38*Math.sin(wallT*p.tw+p.ph2));
+    ctx.drawImage(img,x-px,y-px,px*2,px*2);
+  }
+  ctx.restore();
+}
+function drawBinds(P,eu){
+  if(P.nucA<=.004)return;
+  const S=Math.min(W,H)*.5,dur=.14;
+  ctx.save();ctx.globalCompositeOperation='lighter';
+  for(const ev of BIND){
+    const t=(eu-ev.u0)/dur;
+    if(t<0)continue;
+    const x=ev.x*S,y=ev.y*S+Math.sin(wallT*.5+ev.ph)*4;
+    if(t<.55){
+      const rr=(1-t/.55)*30;
+      const ks=['qC','qM','qG'];
+      for(let q=0;q<3;q++){
+        const an=ev.ph+wallT*2.2+q*TAU/3;
+        const px=9;
+        ctx.globalAlpha=P.nucA*.9;
+        ctx.drawImage(GL[ks[q]],x+Math.cos(an)*rr-px,y+Math.sin(an)*rr-px,px*2,px*2);
+      }
+    }else if(t<.8){
+      const ff=1-(t-.55)/.25;
+      const px=20+22*ff;
+      ctx.globalAlpha=P.nucA*(.5+.5*ff);
+      ctx.drawImage(GL.white,x-px,y-px,px*2,px*2);
+    }else{
+      const px=11;
+      ctx.globalAlpha=P.nucA*.85;
+      ctx.drawImage(GL.white,x-px,y-px,px*2,px*2);
+      ctx.globalAlpha=P.nucA*.3;
+      ctx.strokeStyle='rgba(200,220,255,1)';ctx.lineWidth=1;
+      ctx.beginPath();ctx.arc(x,y,7,0,TAU);ctx.stroke();
+    }
+  }
+  ctx.restore();
+}
+function drawFuse(P,eu){
+  if(P.heA<=.004)return;
+  const S=Math.min(W,H)*.5,dur=.16;
+  ctx.save();ctx.globalCompositeOperation='lighter';
+  for(const ev of FUSE){
+    const t=(eu-ev.u0)/dur;
+    if(t<0)continue;
+    const x=ev.x*S,y=ev.y*S+Math.cos(wallT*.4+ev.ph)*4;
+    if(t<.55){
+      const rr=(1-t/.55)*26;
+      for(let q=0;q<4;q++){
+        const an=ev.ph+wallT*1.6+q*TAU/4;
+        const px=7;
+        ctx.globalAlpha=P.heA*.85;
+        ctx.drawImage(GL.white,x+Math.cos(an)*rr-px,y+Math.sin(an)*rr-px,px*2,px*2);
+      }
+    }else if(t<.8){
+      const ff=1-(t-.55)/.25;
+      const px=22+26*ff;
+      ctx.globalAlpha=P.heA*(.55+.45*ff);
+      ctx.drawImage(GL.gold,x-px,y-px,px*2,px*2);
+    }else{
+      const px=14;
+      ctx.globalAlpha=P.heA*.9;
+      ctx.drawImage(GL.amber,x-px,y-px,px*2,px*2);
+      ctx.globalAlpha=P.heA*.8;
+      const a2=wallT*1.2+ev.ph;
+      for(let q=0;q<2;q++){
+        const px2=4.5;
+        ctx.drawImage(GL.white,x+Math.cos(a2+q*Math.PI)*5-px2,y+Math.sin(a2+q*Math.PI)*5-px2,px2*2,px2*2);
+      }
+    }
+  }
+  ctx.restore();
+}
+function drawAtoms(P,eu){
+  if(P.atomA<=.004)return;
+  const S=Math.min(W,H)*.5;
+  ctx.save();ctx.globalCompositeOperation='lighter';
+  for(const ev of ATOM){
+    const x=ev.x*S,y=ev.y*S+Math.sin(wallT*.35+ev.oph)*5;
+    const npx=ev.he?10:7.5;
+    ctx.globalAlpha=P.atomA*.85;
+    ctx.drawImage(ev.he?GL.amber:GL.ember,x-npx,y-npx,npx*2,npx*2);
+    const d=eu-ev.u0;
+    if(d>=-.06&&d<0){ // electron flying in
+      const t=1+d/.06;
+      const rr=lerp(58,9,sm(t));
+      const an=ev.oph+t*2.2;
+      const px=4.5;
+      ctx.globalAlpha=P.atomA*.9;
+      ctx.drawImage(GL.cyan,x+Math.cos(an)*rr-px,y+Math.sin(an)*rr-px,px*2,px*2);
+    }else if(d>=0){ // captured: orbiting
+      const an=ev.oph+wallT*ev.osp;
+      const px=4.2;
+      ctx.globalAlpha=P.atomA*.95;
+      ctx.drawImage(GL.cyan,x+Math.cos(an)*9.5-px,y+Math.sin(an)*9.5*.6-px,px*2,px*2);
+      ctx.globalAlpha=P.atomA*.28;
+      ctx.strokeStyle='rgba(150,215,255,1)';ctx.lineWidth=1;
+      ctx.beginPath();ctx.ellipse(x,y,9.5,9.5*.6,0,0,TAU);ctx.stroke();
+      if(d<.05){
+        const ff=1-d/.05;
+        const px3=14+14*ff;
+        ctx.globalAlpha=P.atomA*.5*ff;
+        ctx.drawImage(GL.white,x-px3,y-px3,px3*2,px3*2);
+      }
+    }
+  }
+  ctx.restore();
+}
+function drawPhotons(P){
+  if(P.phA<=.004)return;
+  const L=P.phLen*Math.max(W,H);
+  const NP=Math.round(PHOT.length*(P.phN===undefined?1:P.phN));
+  ctx.save();ctx.globalCompositeOperation='lighter';
+  ctx.lineCap='round';
+  for(let pi=0;pi<NP;pi++){const p=PHOT[pi];
+    const ang=p.ang+Math.sin(wallT*7+p.ph)*P.phZig*.6;
+    const x=fract(p.x+Math.cos(p.ang)*wallT*p.sp)*W;
+    const y=fract(p.y+Math.sin(p.ang)*wallT*p.sp)*H;
+    const dx=Math.cos(ang)*L,dy=Math.sin(ang)*L;
+    ctx.globalAlpha=P.phA*.55;
+    ctx.strokeStyle='rgba(190,225,255,1)';ctx.lineWidth=1.1;
+    ctx.beginPath();ctx.moveTo(x-dx/2,y-dy/2);ctx.lineTo(x+dx/2,y+dy/2);ctx.stroke();
+    ctx.globalAlpha=P.phA*.9;
+    ctx.strokeStyle='rgba(255,255,255,1)';ctx.lineWidth=.6;
+    ctx.beginPath();ctx.moveTo(x-dx/4,y-dy/4);ctx.lineTo(x+dx/2,y+dy/2);ctx.stroke();
+  }
+  ctx.restore();
+}
+
+const FIELD_SCALE=(()=>{const area=(window.innerWidth*window.innerHeight)/(1440*900);
+  return clamp(area,.27,1)*(RM?.7:1);})();
+const SH_MUL=RM?.25:1;
+
+/* ---------- master render ---------- */
+function render(T){
+  const P=computeParams(T);
+  const i=P.i,u=P.u;
+  // camera easing
+  CAM.zT=P.camZ;
+  CAM.z+= (CAM.zT-CAM.z)*.06;
+  CAM.ang+=P.camRot*(1/60)*(RM?.5:1);
+  drawBG(P);
+  drawGrid(P);
+  drawFogLayer(P);
+  drawCMB(P);
+  // world
+  const shake=P.camShake*SH_MUL*5;
+  const shx=(Math.sin(wallT*23)*.5+Math.sin(wallT*41+1.7)*.35+Math.sin(wallT*9.3)*.15)*shake;
+  const shy=(Math.cos(wallT*19)*.5+Math.cos(wallT*37+.8)*.35+Math.cos(wallT*11.2)*.15)*shake;
+  const dx=Math.sin(wallT*.11)*P.drift*14,dy=Math.cos(wallT*.087)*P.drift*14;
+  ctx.save();
+  ctx.translate(W/2+dx+shx,H/2+dy+shy);
+  ctx.rotate(CAM.ang);
+  ctx.scale(CAM.z*P.expand,CAM.z*P.expand);
+  drawWeb(P);
+  drawGalaxies(P, i<9?0:(i===9?u:1));
+  drawStars(P, i<8?0:(i===8?u:1), i===8);
+  drawDust(P);
+  drawField(P);
+  drawBinds(P, i<3?-1:(i===3?u:1));
+  drawFuse(P, i<4?-1:(i===4?u:1));
+  drawAtoms(P, i<5?-1:(i===5?u:1));
+  ctx.restore();
+  drawPhotons(P);
+  ctx.drawImage(VIG,0,0,W,H);
+  if(started)updateAge(i,u);
+}
+
+/* ---------- cosmic age formatting ---------- */
+function sci(t){let e=Math.floor(Math.log10(t));let m=t/Math.pow(10,e);
+  if(m>=9.95){m=1;e+=1;}return {m,e};}
+function fmtZh(t){
+  if(t<.5){const {m,e}=sci(t);const ms=m.toFixed(1);
+    return (Math.abs(m-1)<.06?'':ms+'×')+'10'+sup(e)+' 秒';}
+  if(t<90)return (t<10?t.toFixed(1):Math.round(t))+' 秒';
+  if(t<5400)return (t/60).toFixed(1).replace(/\.0$/,'')+' 分钟';
+  if(t<172800)return (t/3600).toFixed(1).replace(/\.0$/,'')+' 小时';
+  const y=t/YR;
+  if(y<2)return Math.round(t/86400)+' 天';
+  if(y<1e4)return Math.round(y)+' 年';
+  if(y<1e8)return (y/1e4).toFixed(y<1e5?1:0).replace(/\.0$/,'')+' 万年';
+  return (y/1e8).toFixed(y<1e9?2:1)+' 亿年';
+}
+function fmtEn(t){
+  if(t<.5){const {m,e}=sci(t);const ms=m.toFixed(1);
+    return (Math.abs(m-1)<.06?'':ms+'×')+'10'+sup(e)+' s';}
+  if(t<90)return (t<10?t.toFixed(1):Math.round(t))+' s';
+  if(t<5400)return (t/60).toFixed(1).replace(/\.0$/,'')+' min';
+  if(t<172800)return (t/3600).toFixed(1).replace(/\.0$/,'')+' hr';
+  const y=t/YR;
+  if(y<2)return Math.round(t/86400)+' days';
+  if(y<1e4)return Math.round(y)+' yr';
+  if(y<1e6)return Math.round(y/1e3)+' kyr';
+  if(y<1e9)return (y/1e6).toFixed(y<1e7?1:0).replace(/\.0$/,'')+' million yr';
+  return (y/1e9).toFixed(2).replace(/0$/,'')+' billion yr';
+}
+const ageEl=document.getElementById('ageRead');
+let lastAgeStr='';
+function updateAge(i,u){
+  const s=STAGES[i];
+  const t=Math.exp(lerp(Math.log(s.t0),Math.log(s.t1),u));
+  const val=LANG==='en'?fmtEn(t):fmtZh(t);
+  const lab=LANG==='en'?'Cosmic age':(LANG==='zh'?'宇宙年龄':'宇宙年龄 · Age');
+  const str=lab+' <b>'+val+'</b>';
+  if(str!==lastAgeStr){lastAgeStr=str;ageEl.innerHTML=str;}
+}
+
+/* ---------- DOM refs ---------- */
+const $=id=>document.getElementById(id);
+const body=document.body,hud=$('hud'),intro=$('intro'),endcard=$('endcard'),
+ stNum=$('stNum'),stAge=$('stAge'),stName=$('stName'),stNameEn=$('stNameEn'),
+ subZh=$('subZh'),subEn=$('subEn'),chip=$('chip'),tl=$('tl'),tlFill=$('tlFill'),
+ tlHead=$('tlHead'),tlTicks=$('tlTicks'),tlTrack=$('tlTrack'),tlTip=$('tlTip'),
+ chapters=$('chapters'),chapList=$('chapList'),settings=$('settings'),toastEl=$('toast');
+
+/* ---------- state ---------- */
+let T=0,playing=false,started=false,cur=-1,dragging=false;
+let LANG='both';
+const NAR={zh:false,en:false};
+let MUSIC_ON=true,SFX_ON=true;
+
+/* ---------- audio ---------- */
+let AC=null,musicBus=null,musicLP=null,sfxBus=null;
+function ensureAudio(){
+  if(AC||!AUDIO_OK)return;
+  const Ctor=window.AudioContext||window.webkitAudioContext;
+  if(!Ctor){AUDIO_OK=false;return;}
+  AC=new Ctor();
+  const master=AC.createGain();master.gain.value=.9;master.connect(AC.destination);
+  musicLP=AC.createBiquadFilter();musicLP.type='lowpass';musicLP.frequency.value=1800;musicLP.Q.value=.4;
+  musicBus=AC.createGain();musicBus.gain.value=0;
+  musicBus.connect(musicLP);musicLP.connect(master);
+  sfxBus=AC.createGain();sfxBus.gain.value=.8;sfxBus.connect(master);
+  // drone voices
+  const voices=[[55,.15,.06],[82.41,.12,.09],[110,.1,.075],[110.7,.05,.05],[164.81,.07,.11],[220,.045,.05]];
+  for(const [f,g0,lf] of voices){
+    const o=AC.createOscillator();o.type='sine';o.frequency.value=f;
+    const g=AC.createGain();g.gain.value=g0;
+    const lo=AC.createOscillator();lo.type='sine';lo.frequency.value=lf;
+    const lg=AC.createGain();lg.gain.value=g0*.45;
+    lo.connect(lg);lg.connect(g.gain);
+    o.connect(g);g.connect(musicBus);o.start();lo.start();
+  }
+  // airy noise bed
+  const nb=AC.createBuffer(1,AC.sampleRate*2,AC.sampleRate);
+  const d=nb.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
+  const ns=AC.createBufferSource();ns.buffer=nb;ns.loop=true;
+  const bp=AC.createBiquadFilter();bp.type='bandpass';bp.frequency.value=420;bp.Q.value=.8;
+  const ng=AC.createGain();ng.gain.value=.028;
+  ns.connect(bp);bp.connect(ng);ng.connect(musicBus);ns.start();
+}
+function setMusic(on){MUSIC_ON=on;
+  if(!AC)return;
+  musicBus.gain.cancelScheduledValues(AC.currentTime);
+  musicBus.gain.linearRampToValueAtTime(on?.5:0,AC.currentTime+1.2);
+}
+const LPSTAGE=[2400,2000,2200,1900,1700,1300,1500,750,1100,1400,1600];
+function setMusicStage(i){if(!AC)return;
+  musicLP.frequency.cancelScheduledValues(AC.currentTime);
+  musicLP.frequency.linearRampToValueAtTime(LPSTAGE[i]||1500,AC.currentTime+2.4);
+}
+function env(g,t0,a,peak,rel){
+  g.gain.setValueAtTime(0,t0);
+  g.gain.linearRampToValueAtTime(peak,t0+a);
+  g.gain.exponentialRampToValueAtTime(.0008,t0+a+rel);
+}
+function noiseSrc(dur){
+  const nb=AC.createBuffer(1,AC.sampleRate*dur,AC.sampleRate);
+  const d=nb.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
+  const s=AC.createBufferSource();s.buffer=nb;return s;
+}
+function sWhoosh(small){
+  if(!AC||!SFX_ON)return;const t0=AC.currentTime;
+  const s=noiseSrc(1);
+  const bp=AC.createBiquadFilter();bp.type='bandpass';bp.Q.value=1.1;
+  bp.frequency.setValueAtTime(240,t0);
+  bp.frequency.linearRampToValueAtTime(1700,t0+.32);
+  bp.frequency.exponentialRampToValueAtTime(170,t0+.9);
+  const g=AC.createGain();env(g,t0,.12,small?.2:.42,.8);
+  s.connect(bp);bp.connect(g);g.connect(sfxBus);s.start(t0);s.stop(t0+1);
+}
+function sRumble(){
+  if(!AC||!SFX_ON)return;const t0=AC.currentTime;
+  const o=AC.createOscillator();o.type='sawtooth';o.frequency.value=42;
+  const o2=AC.createOscillator();o2.type='sine';o2.frequency.value=58;
+  const lp=AC.createBiquadFilter();lp.type='lowpass';lp.frequency.value=140;
+  const g=AC.createGain();env(g,t0,.1,.5,1.7);
+  o.connect(lp);o2.connect(lp);lp.connect(g);g.connect(sfxBus);
+  o.start(t0);o2.start(t0);o.stop(t0+1.9);o2.stop(t0+1.9);
+}
+function sShimmer(){
+  if(!AC||!SFX_ON)return;const t0=AC.currentTime;
+  [1318.5,1760,2093,2637].forEach((f,i)=>{
+    const o=AC.createOscillator();o.type='sine';o.frequency.value=f;
+    const g=AC.createGain();env(g,t0+i*.13,.04,.09,1.4);
+    o.connect(g);g.connect(sfxBus);o.start(t0+i*.13);o.stop(t0+i*.13+1.6);
+  });
+}
+function sIgnite(){
+  if(!AC||!SFX_ON)return;const t0=AC.currentTime;
+  const s=noiseSrc(.16);
+  const hp=AC.createBiquadFilter();hp.type='highpass';hp.frequency.value=1400;
+  const g=AC.createGain();env(g,t0,.015,.22,.14);
+  s.connect(hp);hp.connect(g);g.connect(sfxBus);s.start(t0);s.stop(t0+.18);
+  const o=AC.createOscillator();o.type='triangle';
+  o.frequency.setValueAtTime(740,t0);o.frequency.exponentialRampToValueAtTime(1180,t0+.22);
+  const g2=AC.createGain();env(g2,t0,.02,.26,.32);
+  o.connect(g2);g2.connect(sfxBus);o.start(t0);o.stop(t0+.4);
+}
+function stageSfx(i){
+  if(i===1)sRumble();else if(i===6)sShimmer();else if(i===8)sIgnite();else sWhoosh(true);
+}
+
+/* ---------- narration ---------- */
+const SYNTH_OK=('speechSynthesis' in window)&&!QA;
+function pickVoice(pre){
+  const vs=window.speechSynthesis?speechSynthesis.getVoices():[];
+  return vs.find(v=>v.lang&&v.lang.toLowerCase().startsWith(pre))||
+         vs.find(v=>v.lang&&v.lang.toLowerCase().includes(pre==='zh'?'cmn':'en'))||null;
+}
+if(SYNTH_OK&&speechSynthesis.onvoiceschanged!==undefined){
+  speechSynthesis.onvoiceschanged=()=>{};
+}
+function stopSpeech(){if(SYNTH_OK)try{speechSynthesis.cancel();}catch(e){}}
+function speak(i){
+  if(!SYNTH_OK||QA)return;
+  if(!NAR.zh&&!NAR.en)return;
+  stopSpeech();
+  const s=STAGES[i];
+  const ut=new SpeechSynthesisUtterance(NAR.zh?s.narrZh:s.narrEn);
+  ut.lang=NAR.zh?'zh-CN':'en-US';
+  const v=pickVoice(NAR.zh?'zh':'en');
+  if(v)ut.voice=v;
+  ut.rate=1;ut.pitch=1;
+  try{speechSynthesis.speak(ut);}catch(e){}
+}
+
+/* ---------- toast ---------- */
+let toastT=null;
+function toast(msg){
+  toastEl.textContent=msg;toastEl.classList.add('on');
+  clearTimeout(toastT);toastT=setTimeout(()=>toastEl.classList.remove('on'),2400);
+}
+
+/* ---------- stage / HUD text ---------- */
+function retrigger(el){el.classList.remove('swap');void el.offsetWidth;el.classList.add('swap');}
+function renderStageTexts(){
+  if(cur<0)return;
+  const s=STAGES[cur];
+  stNum.textContent=String(cur+1).padStart(2,'0')+' / 11';
+  stAge.textContent=LANG==='en'?s.ageEn:s.ageZh;
+  if(LANG==='en'){stName.textContent=s.en;stNameEn.textContent=s.zh;}
+  else{stName.textContent=s.zh;stNameEn.textContent=s.en;}
+  subZh.textContent=s.descZh;
+  subEn.textContent=s.descEn;
+}
+function setStage(i,opts){
+  opts=opts||{};
+  if(i===cur&&!opts.force)return;
+  const was=cur;cur=i;
+  body.dataset.stage=String(i);
+  renderStageTexts();
+  retrigger(stName);retrigger(stNameEn);retrigger(subZh);retrigger(subEn);
+  // chip
+  if(CHIPS[i]){chip.innerHTML=CHIPS[i];chip.classList.add('on');}
+  else chip.classList.remove('on');
+  // chapters highlight
+  const rows=chapList.children;
+  for(let k=0;k<rows.length;k++)rows[k].classList.toggle('active',k===i);
+  if(i===8&&was!==8)igniteSeen=new Set();
+  if(started&&opts.say!==false){
+    if(!QA)stageSfx(i);
+    setMusicStage(i);
+    speak(i);
+  }
+  poke();
+}
+
+/* ---------- timeline ---------- */
+function buildTimeline(){
+  for(let i=1;i<STAGES.length;i++){
+    const d=document.createElement('div');d.className='tlseg';
+    d.style.left=(STARTS[i]/TOTAL*100)+'%';
+    tlTrack.appendChild(d);
+  }
+  for(const t of TICKS){
+    const pos=(t.b>=STAGES.length?TOTAL:STARTS[t.b])/TOTAL*100;
+    const d=document.createElement('div');d.className='tick'+(t.last?' last':'');
+    if(t.min)d.setAttribute('data-min','1');
+    d.style.left=pos+'%';
+    d.textContent=t.zh;d._t=t;
+    tlTicks.appendChild(d);
+  }
+}
+function renderTicks(){
+  for(const d of tlTicks.children)d.textContent=LANG==='en'?d._t.en:d._t.zh;
+}
+function tlFrac(e){
+  const r=tl.getBoundingClientRect();
+  return clamp((e.clientX-r.left)/r.width,0,1);
+}
+function updateTip(frac){
+  const i=stageOf(frac*TOTAL);
+  const s=STAGES[i];
+  tlTip.innerHTML=(LANG==='en'?s.en:s.zh)+'<small>'+(LANG==='en'?s.ageEn:s.ageZh)+'</small>';
+  tlTip.style.left=clamp(frac*100,7,93)+'%';
+}
+tl.addEventListener('pointermove',e=>{updateTip(tlFrac(e));if(dragging)seek(tlFrac(e)*TOTAL,{say:false});});
+tl.addEventListener('pointerdown',e=>{
+  dragging=true;body.classList.add('dragging');
+  tl.setPointerCapture(e.pointerId);
+  seek(tlFrac(e)*TOTAL,{say:false});
+});
+tl.addEventListener('pointerup',e=>{
+  dragging=false;body.classList.remove('dragging');
+  speak(cur);
+});
+tl.addEventListener('pointercancel',()=>{dragging=false;body.classList.remove('dragging');});
+
+/* ---------- playback ---------- */
+function seek(nt,opts){
+  opts=opts||{};
+  const big=Math.abs(nt-T)>2.5;
+  T=clamp(nt,0,TOTAL-.001);
+  const ni=stageOf(T);
+  if(ni!==cur)setStage(ni,{say:opts.say});
+  if(big){const P=computeParams(T);camSnap(P);}
+  if(T<TOTAL-.5)endcard.classList.remove('on');
+  updateTimelineUI();
+}
+function updateTimelineUI(){
+  const f=T/TOTAL*100;
+  tlFill.style.width=f+'%';
+  tlHead.style.left=f+'%';
+}
+function play(){
+  if(!started)return;
+  if(T>=TOTAL-.01)T=0;
+  playing=true;body.classList.add('playing');
+  if(AC&&AC.state==='suspended')AC.resume();
+  poke();
+}
+function pause(){
+  playing=false;body.classList.remove('playing');
+  stopSpeech();
+  body.classList.remove('hudhide');
+}
+function finish(){
+  pause();
+  endcard.classList.add('on');
+  sShimmer();
+}
+let lastNow=performance.now();
+function loop(now){
+  requestAnimationFrame(loop);
+  const dt=Math.min(.05,(now-lastNow)/1000);
+  lastNow=now;wallT=now/1000;
+  if(started){
+    if(playing){
+      T+=dt;
+      if(T>=TOTAL){T=TOTAL-.0001;render(T);updateTimelineUI();finish();return;}
+      const ni=stageOf(T);
+      if(ni!==cur)setStage(ni);
+      updateTimelineUI();
+    }
+    render(T);
+  }else{
+    // ambient title-screen backdrop: deep-field view
+    render(STARTS[9]+.55*STAGES[9].dur+Math.sin(wallT*.05)*2);
+  }
+}
+
+/* ---------- chapters ---------- */
+function buildChapters(){
+  STAGES.forEach((s,i)=>{
+    const b=document.createElement('button');b.className='chap';
+    b.innerHTML='<span class="n">'+String(i+1).padStart(2,'0')+'</span>'+
+      '<span><span class="zh">'+s.zh+'</span><span class="en" style="display:block">'+s.en+'</span></span>'+
+      '<span class="age">'+s.ageZh+'</span>';
+    b.addEventListener('click',()=>{
+      if(!started)startJourney(false);
+      seek(STARTS[i]+.001,{say:true});
+      if(window.innerWidth<860)chapters.classList.remove('open');
+    });
+    chapList.appendChild(b);
+  });
+}
+
+/* ---------- switches / settings ---------- */
+function wireSw(el,init,cb){
+  let v=init;
+  const apply=(nv,fire)=>{v=nv;el.classList.toggle('on',v);el.setAttribute('aria-checked',String(v));if(fire!==false)cb(v);};
+  el.addEventListener('click',()=>apply(!v));
+  apply(init,false);
+  return {get:()=>v,set:apply};
+}
+const swZh=wireSw($('swNarZh'),false,v=>{
+  if(v){
+    if(!SYNTH_OK){toast('当前环境不支持语音合成 · Speech synthesis unavailable');swZh.set(false,false);return;}
+    NAR.zh=true;NAR.en=false;swEn.set(false,false);
+    if(started)speak(cur);
+  }else{NAR.zh=false;stopSpeech();}
+});
+const swEn=wireSw($('swNarEn'),false,v=>{
+  if(v){
+    if(!SYNTH_OK){toast('当前环境不支持语音合成 · Speech synthesis unavailable');swEn.set(false,false);return;}
+    NAR.en=true;NAR.zh=false;swZh.set(false,false);
+    if(started)speak(cur);
+  }else{NAR.en=false;stopSpeech();}
+});
+wireSw($('swMusic'),true,v=>{ensureAudio();setMusic(v);});
+wireSw($('swSfx'),true,v=>{SFX_ON=v;});
+
+/* ---------- language ---------- */
+const LANGS=['both','zh','en'],LANGLAB={both:'双',zh:'中',en:'EN'};
+function setLang(l){
+  LANG=l;body.dataset.lang=l;
+  $('btnLang').textContent=LANGLAB[l];
+  renderStageTexts();renderTicks();lastAgeStr='';
+}
+$('btnLang').addEventListener('click',()=>{
+  setLang(LANGS[(LANGS.indexOf(LANG)+1)%3]);
+});
+
+/* ---------- buttons ---------- */
+$('btnPlay').addEventListener('click',()=>{playing?pause():play();});
+$('btnPrev').addEventListener('click',()=>{seek(STARTS[Math.max(0,cur-1)]+.001,{say:true});});
+$('btnNext').addEventListener('click',()=>{seek(STARTS[Math.min(10,cur+1)]+.001,{say:true});});
+$('btnReplay').addEventListener('click',()=>{seek(.0,{say:false});setStage(0,{say:true,force:true});play();});
+$('btnAgain').addEventListener('click',()=>{endcard.classList.remove('on');seek(0,{say:false});setStage(0,{say:true,force:true});play();});
+$('btnBrowse').addEventListener('click',()=>{endcard.classList.remove('on');chapters.classList.add('open');});
+$('btnChapters').addEventListener('click',()=>chapters.classList.toggle('open'));
+$('btnChapClose').addEventListener('click',()=>chapters.classList.remove('open'));
+$('btnSettings').addEventListener('click',e=>{e.stopPropagation();settings.classList.toggle('open');});
+document.addEventListener('click',e=>{
+  if(settings.classList.contains('open')&&!settings.contains(e.target)&&e.target.id!=='btnSettings')
+    settings.classList.remove('open');
+});
+$('btnFull').addEventListener('click',()=>{
+  if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});
+  else document.documentElement.requestFullscreen().catch(()=>toast('无法进入全屏 · Fullscreen unavailable'));
+});
+
+/* ---------- keyboard ---------- */
+document.addEventListener('keydown',e=>{
+  if(!started)return;
+  if(e.key===' '||e.key==='k'){e.preventDefault();playing?pause():play();}
+  else if(e.key==='ArrowRight')seek(STARTS[Math.min(10,cur+1)]+.001,{say:true});
+  else if(e.key==='ArrowLeft')seek(STARTS[Math.max(0,cur-1)]+.001,{say:true});
+  else if(e.key==='f'||e.key==='F')$('btnFull').click();
+  else if(e.key==='c'||e.key==='C')chapters.classList.toggle('open');
+  else if(e.key==='Escape'){chapters.classList.remove('open');settings.classList.remove('open');}
+});
+
+/* ---------- idle hide ---------- */
+let idleT=null;
+function poke(){
+  body.classList.remove('hudhide');
+  clearTimeout(idleT);
+  idleT=setTimeout(()=>{
+    if(playing&&started&&!chapters.classList.contains('open')&&!settings.classList.contains('open'))
+      body.classList.add('hudhide');
+  },3200);
+}
+document.addEventListener('pointermove',poke);
+document.addEventListener('pointerdown',poke);
+
+/* ---------- visibility ---------- */
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden&&playing)pause();
+});
+
+/* ---------- start ---------- */
+function startJourney(autoplay){
+  if(started)return;
+  started=true;
+  intro.classList.add('gone');
+  hud.style.opacity='';
+  ensureAudio();
+  if(MUSIC_ON)setMusic(true);
+  sWhoosh(false);
+  seek(0,{say:false});
+  setStage(0,{say:true,force:true});
+  if(autoplay!==false)play();
+}
+$('btnStart').addEventListener('click',()=>startJourney(true));
+
+/* ---------- init ---------- */
+{const st=document.createElement('style');
+ st.textContent='body[data-lang="both"] #chip .t-zh+.t-en::before{content:" · ";color:var(--faint)}body[data-lang="both"] .alt{display:none}';
+ document.head.appendChild(st);}
+hud.style.opacity='0';
+buildTimeline();buildChapters();
+setLang('both');
+updateTimelineUI();
+
+/* ---------- QA hooks ---------- */
+if(QA){
+  intro.style.display='none';
+  hud.style.opacity='';
+  started=true;
+  const qs=clamp(parseInt(QP.get('stage')||'0',10)||0,0,10);
+  const qu=clamp(parseFloat(QP.get('u')||'0')||0,0,.999);
+  T=STARTS[qs]+qu*STAGES[qs].dur;
+  setStage(qs,{say:false,force:true});
+  const P=computeParams(T);camSnap(P);
+  updateTimelineUI();
+  if(QP.get('paused')==='0')play();
+  if(QP.get('lang'))setLang(QP.get('lang'));
+  if(QP.get('hud')==='0')body.classList.add('hudhide');
+}
+window.UQA={
+  go:(i,u)=>{if(!started){started=true;intro.style.display='none';hud.style.opacity='';}
+    seek(STARTS[i]+u*STAGES[i].dur,{say:false});},
+  play:()=>play(),pause:()=>pause(),lang:setLang,t:()=>T,stage:()=>cur
+};
+
+requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
