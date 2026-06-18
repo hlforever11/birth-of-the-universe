@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#B4100A">
+<title>人工智能素养Ⅰ · 学习平台</title>
+<meta name="description" content="人工智能素养Ⅰ（通用）课程学习平台：慕课、实践工坊、AI练习场、作品广场与学习记录。">
+<style>
+html,body{margin:0;min-height:100%;background:#fbf8f5;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif}
+#boot{position:fixed;inset:0;display:grid;place-items:center;background:#B4100A;color:#fff;z-index:99999}
+#boot>div{text-align:center}#boot b{display:block;font-family:Georgia,serif;font-size:30px;letter-spacing:4px;margin-bottom:14px}#boot span{font-size:13px;opacity:.8;letter-spacing:2px}
+#boot.error{background:#2a1215}#boot.error span{max-width:720px;display:block;line-height:1.7;padding:0 24px}
+</style>
+</head>
+<body>
+<div id="root"></div><div id="boot"><div><b>人工智能素养 Ⅰ</b><span>学习平台加载中…</span></div></div>
+<script>
+const __PACK_FILES__=['./pack/0.txt','./pack/1.txt','./pack/2.txt','./pack/3.txt','./pack/4.txt','./pack/5_0.txt','./pack/5_1.txt','./pack/5_2.txt','./pack/5_3_0.txt','./pack/5_3_1.txt','./pack/5_3_2.txt','./pack/5_3_3.txt','./pack/5_4.txt','./pack/5_5.txt','./pack/5_6_0.txt','./pack/5_6_1.txt','./pack/5_6_2.txt','./pack/5_6_3.txt'];
+(async()=>{
+ const boot=document.getElementById('boot');
+ const status=boot.querySelector('span');
+ function loadOne(url){return new Promise((ok,bad)=>{const s=document.createElement('script');s.src=url;s.onload=ok;s.onerror=bad;document.head.appendChild(s)})}
+ async function load(primary,fallback){try{await loadOne(primary)}catch(e){await loadOne(fallback)}}
+ try{
+  status.textContent='正在加载运行环境…';
+  await load('https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js','https://unpkg.com/react@18.3.1/umd/react.production.min.js');
+  await load('https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js','https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js');
+  status.textContent='正在展开课程内容…';
+  const __parts__=await Promise.all(__PACK_FILES__.map(u=>fetch(u).then(r=>{if(!r.ok)throw new Error('课程数据加载失败 '+r.status);return r.text()})));
+  const bin=atob(__parts__.join('')),bytes=Uint8Array.from(bin,c=>c.charCodeAt(0));
+  const ds=new DecompressionStream('gzip');
+  const raw=await new Response(new Blob([bytes]).stream().pipeThrough(ds)).text();
+  const p=JSON.parse(raw);
+  const st=document.createElement('style');st.textContent=p.css;document.head.appendChild(st);
+  const sc=document.createElement('script');sc.textContent=p.js;document.body.appendChild(sc);
+  boot.remove();
+ }catch(e){console.error(e);boot.className='error';status.textContent='加载失败：'+e.message+'。请使用最新版 Chrome、Edge、Firefox 或 Safari，并检查网络连接。'}
+})();
+</script>
+<noscript><div style="padding:40px;font-family:sans-serif">此学习平台需要启用 JavaScript。</div></noscript>
+</body></html>
