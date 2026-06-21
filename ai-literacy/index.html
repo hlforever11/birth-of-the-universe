@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#B4100A">
 <title>人工智能素养Ⅰ · 学习平台</title>
-<meta name="description" content="人工智能素养Ⅰ（通用）课程学习平台：慕课、实践工坊、AI练习场、作品广场与学习记录。">
+<meta name="description" content="人工智能素养Ⅰ（通用）课程学习平台：慕课、实践工坊、AI 练习场、作品广场与学习记录。">
 <style>
 html,body{margin:0;min-height:100%;background:#fbf8f5;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif}
 #boot{position:fixed;inset:0;display:grid;place-items:center;background:#B4100A;color:#fff;z-index:99999}
@@ -27,13 +27,16 @@ const __PACK_FILES__=['./pack/0.txt','./pack/1.txt','./pack/2.txt','./pack/3.txt
   await load('https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js','https://unpkg.com/react@18.3.1/umd/react.production.min.js');
   await load('https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js','https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js');
   status.textContent='正在展开课程内容…';
-  const __parts__=await Promise.all(__PACK_FILES__.map(u=>fetch(u).then(r=>{if(!r.ok)throw new Error('课程数据加载失败 '+r.status);return r.text()})));
-  const bin=atob(__parts__.join('')),bytes=Uint8Array.from(bin,c=>c.charCodeAt(0));
+  const parts=await Promise.all(__PACK_FILES__.map(u=>fetch(u).then(r=>{if(!r.ok)throw new Error('课程数据加载失败 '+r.status);return r.text()})));
+  const bin=atob(parts.join('')),bytes=Uint8Array.from(bin,c=>c.charCodeAt(0));
   const ds=new DecompressionStream('gzip');
   const raw=await new Response(new Blob([bytes]).stream().pipeThrough(ds)).text();
   const p=JSON.parse(raw);
+  p.js=p.js.replace('\\u6839\\u672C\\u76EE\\u6807 \\xB7 THE POINT','\\u8BFE\\u7A0B\\u76EE\\u6807 \\xB7 THE POINT');
+  p.css+=`\n/* 2026-06-21 更新：明远 AI 助教入口 */\n.fab{height:60px;min-width:60px;padding:0 10px;border-radius:999px;background:radial-gradient(120% 120% at 30% 25%,var(--crimson-bright),var(--crimson) 55%,var(--crimson-deep));box-shadow:var(--elev-3),0 0 0 1px color-mix(in oklch,var(--crimson-deep) 60%,transparent) inset;transition:min-width .32s cubic-bezier(.3,.8,.3,1),padding .32s cubic-bezier(.3,.8,.3,1),transform .2s,box-shadow .2s}.fab:hover{transform:translateY(-2px);min-width:152px;padding:0 20px 0 10px}.fab:hover::after{content:"问明远";display:inline-block;margin-left:8px;white-space:nowrap;font-family:var(--font-display);font-size:15px;font-weight:600;letter-spacing:.04em}.fab-open{min-width:56px;height:56px;padding:0;border-radius:16px;background:var(--crimson);display:grid;place-items:center}.fab-open:hover{min-width:56px;padding:0;transform:translateY(-2px) scale(1.04);background:var(--crimson-deep)}`;
   const st=document.createElement('style');st.textContent=p.css;document.head.appendChild(st);
   const sc=document.createElement('script');sc.textContent=p.js;document.body.appendChild(sc);
+  const labelFab=()=>{const el=document.querySelector('.fab');if(el)el.setAttribute('aria-label','明远 · AI 助教');else requestAnimationFrame(labelFab)};requestAnimationFrame(labelFab);
   boot.remove();
  }catch(e){console.error(e);boot.className='error';status.textContent='加载失败：'+e.message+'。请使用最新版 Chrome、Edge、Firefox 或 Safari，并检查网络连接。'}
 })();
