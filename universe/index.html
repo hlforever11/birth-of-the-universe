@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#04040c">
+<title>宇宙诞生与演化</title>
+<meta name="description" content="宇宙诞生与演化：一段可交互、可播放的沉浸式科学动画。">
+<style>
+html,body{height:100%;margin:0;background:#04040c;color:#9fdeff;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif}#loading{position:fixed;inset:0;display:grid;place-items:center;text-align:center;background:radial-gradient(circle at 50% 40%,#172238 0,#04040c 62%)}#loading h1{font-weight:400;letter-spacing:.15em;font-size:clamp(22px,4vw,42px);margin:0 0 16px}#loading p{margin:0;color:#8d9caf;font-size:14px;letter-spacing:.08em}#loading.error p{max-width:680px;line-height:1.8;padding:0 24px;color:#ffb0a6}
+</style>
+</head>
+<body>
+<div id="loading"><div><h1>宇宙诞生与演化</h1><p>正在启动宇宙时间机器…</p></div></div>
+<script>
+(async()=>{
+ const box=document.getElementById('loading');
+ try{
+  if(!('DecompressionStream' in window))throw new Error('当前浏览器版本不支持所需的解压功能');
+  const files=['./pack/01.txt','./pack/02.txt','./pack/03.txt','./pack/04.txt','./pack/05.txt'];
+  const parts=await Promise.all(files.map(u=>fetch(u,{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error('资源加载失败 '+r.status);return r.text()})));
+  const bin=atob(parts.join('')),bytes=Uint8Array.from(bin,c=>c.charCodeAt(0));
+  const stream=new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
+  const html=await new Response(stream).text();
+  document.open();document.write(html);document.close();
+ }catch(err){
+  console.error(err);box.className='error';box.querySelector('p').textContent='页面启动失败：'+err.message+'。请使用最新版 Chrome、Edge、Firefox 或 Safari 后重试。';
+ }
+})();
+</script>
+<noscript><div style="padding:36px">此网页需要启用 JavaScript。</div></noscript>
+</body></html>
