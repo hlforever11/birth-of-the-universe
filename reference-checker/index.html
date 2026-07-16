@@ -19,28 +19,28 @@
 </head>
 <body>
   <header><div class="brand"><b>文证</b> · <span>参考文献核验</span></div><nav><a href="#tool">开始核验</a><a href="#limits">使用边界</a></nav></header>
-  <section class="hero"><div class="eyebrow">Evidence before confidence</div><h1>让每一条参考文献，<br>都经得起核验</h1><p>上传 DOCX、文字版 PDF、TXT 文档，或粘贴最多 20 条中英文参考文献。系统分层比对中文期刊名录、DOI 注册元数据与开放学术数据库，识别暂未核实的条目，并修正题名、作者、年份、卷期、页码和 DOI 等字段。</p></section>
+  <section class="hero"><div class="eyebrow">Evidence before confidence</div><h1>让每一条参考文献，<br>都经得起核验</h1><p>上传 DOCX、文字版 PDF、TXT 文档，或粘贴最多 20 条中英文参考文献。系统分层核对中文期刊、DOI 元数据与开放学术数据库；对含网址的 [EB/OL] 文献，会直接读取原始网页，核对题名、作者和发布日期。</p></section>
   <main>
     <section class="workspace" id="tool" aria-label="参考文献核验工具">
-      <div class="workspace-head"><div><h2>提交参考文献</h2><p>文档在当前浏览器解析；中文文献会自动启用期刊 ISSN 与 DOI 注册元数据回退</p></div><button class="link-btn" id="sampleBtn" type="button">填入示例</button></div>
+      <div class="workspace-head"><div><h2>提交参考文献</h2><p>文档在当前浏览器解析；中文期刊和含网址的网络文献会自动走专用核验流程</p></div><button class="link-btn" id="sampleBtn" type="button">填入示例</button></div>
       <div class="upload" id="dropZone"><input id="fileInput" type="file" accept=".docx,.pdf,.txt"><div class="upload-icon">↑</div><div><strong id="uploadTitle">上传整篇文档</strong><p>拖入文件，或 <button id="chooseBtn" type="button">选择文件</button>；最大 15 MB</p></div><small>DOCX · 文字版 PDF · TXT<br>扫描版 PDF 暂不支持</small></div>
       <div id="fileMessage" class="message hidden" role="status"></div>
       <div class="divider">或者粘贴参考文献列表</div>
       <textarea id="input" aria-label="参考文献列表" placeholder="例如：&#10;[1] 作者. 篇名[J]. 刊名, 2024, 12(3): 20-28. DOI: …&#10;[2] Author. (2023). Title. Journal, 8(2), 10–19."></textarea>
       <div class="actions"><div class="counter" id="counter"><strong>0</strong> / 20</div><button class="primary" id="verifyBtn" type="button" disabled>开始核验</button></div>
     </section>
-    <div class="trust"><span><b>✓</b> 不把“数据库未收录”直接判为虚假</span><span><b>✓</b> 中文增强：本地期刊名录 · DOI 注册元数据 · 大陆复核入口</span></div>
+    <div class="trust"><span><b>✓</b> 不把“数据库未收录”直接判为虚假</span><span><b>✓</b> 中文增强：期刊名录 · DOI 元数据 · 原始网页 · 大陆复核入口</span></div>
     <section class="results hidden" id="results"><div class="results-head"><h2>核验结果</h2><div class="progress" id="progress"></div></div><div class="summary" id="summary"></div><div id="cards"></div></section>
-    <section class="boundary" id="limits"><div class="kicker">BOUNDARIES</div><h2>“未核实”不等于“虚假”</h2><p>系统会在 Crossref、OpenAlex 未收录时，尝试利用中文期刊 ISSN、年份、期号与页码定位万方体系 DOI，并读取 DOI 注册元数据；仍无法自动确认时，会给出百度、万方与 PubScholar 的精确复核入口。公开网页命中只作为复核证据，不会被伪装成结构化数据库结论。</p></section>
+    <section class="boundary" id="limits"><div class="kicker">BOUNDARIES</div><h2>“未核实”不等于“虚假”</h2><p>网络文献优先读取所提交的原始网址；若目标网站允许跨域访问，系统会直接比对页面题名、作者和发布日期。少数网站会禁止浏览器读取，此时会保留官网与百度复核入口，不会把技术性拦截误判成文献虚假。访问日期只能检查时间先后是否合理，无法由今天的网页反推当日访问事实。</p></section>
   </main>
-  <footer>核验请求由浏览器直接发送；中文期刊名录取自 Wikidata CC0，DOI 记录由 DOI Citation Formatter 返回。重要用途请以出版者原始记录为准。</footer>
+  <footer>核验请求由浏览器直接发送；网页文献不经过境外代理，优先访问所提交的原始官网。重要用途请以出版者原始记录为准。</footer>
   <script src="./vendor/mammoth.browser.min.js"></script>
   <script type="module">
     import * as pdfjsLib from './vendor/pdf.min.mjs';
     pdfjsLib.GlobalWorkerOptions.workerSrc = './vendor/pdf.worker.min.mjs';
     const MAX=20,MAX_SIZE=15*1024*1024,REQUEST_TIMEOUT=9000;
     const $=s=>document.querySelector(s), input=$('#input'), counter=$('#counter'), verifyBtn=$('#verifyBtn'), fileInput=$('#fileInput'), drop=$('#dropZone'), msg=$('#fileMessage');
-    const sample=['[1] 李书宁,刘一鸣. ChatGPT类智能对话工具兴起对图书馆行业的机遇与挑战[J]. 图书馆论坛, 2023, 43(05): 104-110.','[2] BENDER E M, GEBRU T, MCMILLAN-MAJOR A, et al. On the dangers of stochastic parrots: Can language models be too big?[C]//Proceedings of the 2021 ACM Conference on Fairness, Accountability, and Transparency. 2021: 610-623. DOI:10.1145/3442188.3445922.','[3] PAGE M J, MCKENZIE J E, BOSSUYT P M, et al. The PRISMA 2020 statement: an updated guideline for reporting systematic reviews[J]. BMJ, 2020, 371: n71. DOI:10.1136/bmj.n71.'].join('\n');
+    const sample=['[1] 李书宁,刘一鸣. ChatGPT类智能对话工具兴起对图书馆行业的机遇与挑战[J]. 图书馆论坛, 2023, 43(05): 104-110.','[2] 陈金榜.朱民博士畅谈ChatGPT与人工智能未来[EB/OL].(2023-03-13)[2023-04-18]. https://www.shanghaitech.edu.cn/2023/0313/c1001a1075770/page.htm','[3] BENDER E M, GEBRU T, MCMILLAN-MAJOR A, et al. On the dangers of stochastic parrots: Can language models be too big?[C]//Proceedings of the 2021 ACM Conference on Fairness, Accountability, and Transparency. 2021: 610-623. DOI:10.1145/3442188.3445922.'].join('\n');
     function refs(v){const clean=v.replace(/\r/g,'').trim();if(!clean)return[];const numbered=clean.split(/\n(?=\s*(?:\[\d+\]|\d+[.、]))/).map(x=>x.replace(/\s*\n\s*/g,' ').trim()).filter(Boolean);if(numbered.length>1)return numbered;const paras=clean.split(/\n\s*\n+/).map(x=>x.replace(/\s*\n\s*/g,' ').trim()).filter(Boolean);return paras.length>1?paras:clean.split('\n').map(x=>x.trim()).filter(Boolean)}
     function update(){const n=refs(input.value).length;counter.innerHTML=`<strong>${n}</strong> / 20`;counter.classList.toggle('over',n>MAX);verifyBtn.disabled=!n||n>MAX}
     input.addEventListener('input',update);$('#sampleBtn').onclick=()=>{input.value=sample;update();input.focus()};$('#chooseBtn').onclick=()=>fileInput.click();fileInput.onchange=()=>fileInput.files[0]&&handleFile(fileInput.files[0]);
@@ -77,13 +77,31 @@
       while(doi.endsWith(')')&&(doi.match(/\)/g)||[]).length>(doi.match(/\(/g)||[]).length)doi=doi.slice(0,-1);
       return doi.toLowerCase();
     }
+    function extractUrl(text){
+      const matches=[...String(text).matchAll(/https?:\/\/[^\s<>"']+/ig)];
+      if(!matches.length)return{url:'',raw:''};
+      let raw=matches.at(-1)[0],value=raw.replace(/[\]}>，。；;、]+$/g,'').replace(/\.$/,'');
+      while(value.endsWith(')')&&(value.match(/\)/g)||[]).length>(value.match(/\(/g)||[]).length)value=value.slice(0,-1);
+      try{const url=new URL(value);if(!/^https?:$/.test(url.protocol))return{url:'',raw:''};url.hash='';return{url:url.href,raw}}catch(e){return{url:'',raw:''}}
+    }
+    function normalizeDate(value){
+      const match=String(value||'').match(/((?:18|19|20)\d{2})(?:\s*[年\-/.]\s*(\d{1,2})(?:\s*[月\-/.]\s*(\d{1,2})\s*日?)?)?/);
+      if(!match)return'';
+      const year=match[1];if(!match[2])return year;
+      const month=String(Number(match[2])).padStart(2,'0');if(!match[3])return`${year}-${month}`;
+      return`${year}-${month}-${String(Number(match[3])).padStart(2,'0')}`;
+    }
     function parseReference(reference){
       const raw=String(reference).replace(/\s+/g,' ').trim();
       const work=raw.replace(/^\s*(?:\[\s*\d+\s*\]|\d{1,3}[.、)])\s*/,'').trim();
-      const doi=extractDoi(work);
-      let body=doi?work.replace(new RegExp(doi.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'i'),''):work;
+      const doi=extractDoi(work),urlMatch=extractUrl(work),url=urlMatch.url;
+      let body=urlMatch.raw?work.replace(urlMatch.raw,''):work;
+      body=doi?body.replace(new RegExp(doi.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'i'),''):body;
       body=body.replace(/(?:doi\s*[:：]?|https?:\/\/(?:dx\.)?doi\.org\/?)\s*[.,。]?\s*$/i,'').trim();
       const typeMatch=body.match(/\[\s*([A-Z/]+)\s*\]/i),type=typeMatch?typeMatch[1].toUpperCase():'';
+      const publicationMatch=(type==='EB/OL'||url)?body.match(/\(\s*((?:18|19|20)\d{2}(?:\s*[年\-/.]\s*\d{1,2}(?:\s*[月\-/.]\s*\d{1,2}\s*日?)?)?)\s*\)/):null;
+      const accessMatch=body.match(/\[\s*((?:18|19|20)\d{2}(?:\s*[年\-/.]\s*\d{1,2}(?:\s*[月\-/.]\s*\d{1,2}\s*日?)?)?)\s*\]/);
+      const publicationDate=normalizeDate(publicationMatch?.[1]||''),accessDate=normalizeDate(accessMatch?.[1]||'');
       let title='',authors='',container='';
       if(typeMatch){
         const before=body.slice(0,typeMatch.index).trim(),parts=before.split(/[.。]\s*/).map(cleanValue).filter(Boolean);
@@ -91,6 +109,13 @@
         const tail=body.slice(typeMatch.index+typeMatch[0].length).replace(/^[\s./／]+/,'');
         const containerMatch=tail.match(/^(.+?)(?:[,，]\s*|[.。]\s+)(?=(?:18|19|20)\d{2}\b)/);
         if(containerMatch)container=cleanValue(containerMatch[1]);
+      }else if(url){
+        const authorLabel=body.match(/(?:作者|author)\s*[:：]\s*(.+?)(?=\s*[;；]\s*(?:题名|标题|title)\s*[:：])/i),titleLabel=body.match(/(?:题名|标题|title)\s*[:：]\s*(.+?)(?=\s*[;；]\s*(?:日期|发布时间|网址|url)\s*[:：]|\s*\(?\s*(?:18|19|20)\d{2})/i);
+        if(authorLabel&&titleLabel){authors=cleanValue(authorLabel[1]);title=cleanValue(titleLabel[1])}
+        else{
+          const beforeDate=cleanValue(body.split(/\(?\s*(?:18|19|20)\d{2}(?:\s*[年\-/.]\s*\d{1,2})?/)[0]),parts=beforeDate.split(/[.。]\s*/).map(cleanValue).filter(Boolean);
+          if(parts.length>1){authors=parts.shift()||'';title=parts.join('. ')}else title=beforeDate;
+        }
       }else{
         const yearMarker=body.match(/\(?((?:18|19|20)\d{2})[a-z]?\)?\s*[.,，。]/i);
         if(yearMarker){
@@ -99,10 +124,10 @@
           title=cleanValue((after.split(/[.。]\s+/)[0]||''));
         }
       }
-      const years=[...body.matchAll(/(?:18|19|20)\d{2}/g)].map(x=>Number(x[0])),year=years.length?years.at(-1):null;
+      const years=[...body.matchAll(/(?:18|19|20)\d{2}/g)].map(x=>Number(x[0])),year=publicationDate?Number(publicationDate.slice(0,4)):years.length?years.at(-1):null;
       const volIssue=body.match(/(?:18|19|20)\d{2}\s*[,，]\s*([A-Za-z]?\d+[A-Za-z]?)\s*(?:\(\s*([^)]+?)\s*\))?/);
       const pageMatches=[...body.matchAll(/[:：]\s*([A-Za-z]?\d+(?:\s*[-–—]\s*[A-Za-z]?\d+)?)(?=\s*(?:[.,，。;；]|$))/g)];
-      return{raw,work,doi,type,title,authors,container,year,volume:volIssue?.[1]||'',issue:volIssue?.[2]||'',pages:pageMatches.at(-1)?.[1]?.replace(/\s*[–—]\s*/g,'-')||''};
+      return{raw,work,doi,url,type,title,authors,container,year,publicationDate,accessDate,volume:volIssue?.[1]||'',issue:volIssue?.[2]||'',pages:pageMatches.at(-1)?.[1]?.replace(/\s*[–—]\s*/g,'-')||''};
     }
     const hasHan=value=>/\p{Script=Han}/u.test(String(value||''));
     function splitSubmittedAuthors(value){
@@ -118,6 +143,97 @@
       ];
       if(doi)links.unshift({label:'万方 DOI 记录',url:`https://doi.wanfangdata.com.cn/${encodeURIComponent(doi)}`});
       return links;
+    }
+    function webEvidenceLinks(parsed){
+      const terms=[parsed.title?`"${parsed.title}"`:'',parsed.authors,parsed.url?`site:${new URL(parsed.url).hostname}`:''].filter(Boolean).join(' ');
+      return hasHan(parsed.raw)?[{label:'百度检索同页',url:`https://www.baidu.com/s?wd=${encodeURIComponent(terms)}`}]:[];
+    }
+    function cleanWebField(value){return String(value||'').replace(/[\u00a0\s]+/g,' ').replace(/^\s*[|｜·•—–_-]+\s*|\s*[|｜·•—–_-]+\s*$/g,'').trim()}
+    function firstPageValue(doc,selectors){
+      for(const selector of selectors){const node=doc.querySelector(selector),value=cleanWebField(node?.getAttribute?.('content')||node?.getAttribute?.('datetime')||node?.textContent);if(value)return value}
+      return'';
+    }
+    function pageValues(doc,selectors){
+      const values=[];for(const selector of selectors)doc.querySelectorAll(selector).forEach(node=>{const value=cleanWebField(node.getAttribute?.('content')||node.textContent);if(value&&!values.includes(value))values.push(value)});return values;
+    }
+    function labeledPageValue(text,labels,stops){
+      const source=String(text||'');
+      for(const label of labels){
+        const match=new RegExp(`${label}\\s*[:：]?\\s*`,'i').exec(source);if(!match)continue;
+        const tail=source.slice(match.index+match[0].length),ends=[tail.search(/[\n|｜]/),...stops.map(stop=>tail.search(new RegExp(`\\s*${stop}\\s*[:：]?`,'i')))].filter(index=>index>=0),end=ends.length?Math.min(...ends):Math.min(tail.length,120),value=cleanWebField(tail.slice(0,end));
+        if(value&&value.length<=100)return value;
+      }
+      return'';
+    }
+    function decodeWebHtml(buffer,contentType=''){
+      const bytes=new Uint8Array(buffer),probe=new TextDecoder('utf-8').decode(bytes.slice(0,4096)),declared=String(contentType).match(/charset\s*=\s*["']?([^;\s"']+)/i)?.[1]||probe.match(/charset\s*=\s*["']?([^;\s"'/>]+)/i)?.[1]||'utf-8';
+      const charset=/^(?:gbk|gb2312|gb18030)$/i.test(declared)?'gb18030':declared;
+      try{return new TextDecoder(charset).decode(bytes)}catch(e){return new TextDecoder('utf-8').decode(bytes)}
+    }
+    function parseWebPage(html,finalUrl){
+      const doc=new DOMParser().parseFromString(html,'text/html'),title=firstPageValue(doc,['meta[name="citation_title"]','meta[property="og:title"]','meta[name="twitter:title"]','.arti_title','article h1','main h1','h1','title']);
+      const metaText=pageValues(doc,['.arti_metas','.article-meta','.article-info','.post-meta','.news-info','.entry-meta']).join('\n'),pageText=String(doc.body?.textContent||'').replace(/[\t\u00a0 ]+/g,' ').replace(/\s*\n\s*/g,'\n');
+      const metaAuthors=pageValues(doc,['meta[name="citation_author"]','meta[name="author"]','meta[property="article:author"]']),labeledAuthor=labeledPageValue(metaText||pageText,['作者','记者','撰稿'],['责任编辑','编辑','文章来源','来源','发布时间','发布日期','时间']);
+      const authors=metaAuthors.length?metaAuthors:labeledAuthor?[labeledAuthor]:[];
+      const rawDate=firstPageValue(doc,['meta[property="article:published_time"]','meta[name="citation_publication_date"]','meta[name="date"]','meta[name="pubdate"]','meta[name="publishdate"]','time[datetime]'])||labeledPageValue(metaText||pageText,['发布时间','发布日期','发布于','时间'],['文章来源','来源','作者','责任编辑','编辑']);
+      const sourceName=firstPageValue(doc,['meta[property="og:site_name"]','meta[name="publisher"]','meta[name="citation_publisher"]'])||labeledPageValue(metaText||pageText,['文章来源','来源'],['作者','责任编辑','编辑','发布时间','发布日期'])||new URL(finalUrl).hostname.replace(/^www\./,'');
+      const publicationDate=normalizeDate(rawDate);
+      return{source:`原始网页（${sourceName}）`,sources:[`原始网页（${sourceName}）`],title,authors,authorKeys:authors.map(name=>normalizeText(name)).filter(Boolean),year:publicationDate?Number(publicationDate.slice(0,4)):null,publicationDate,container:sourceName,type:'webpage',sourceUrl:finalUrl,url:finalUrl};
+    }
+    async function fetchWebCandidate(parsed){
+      const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),14000);
+      try{
+        const response=await fetch(parsed.url,{method:'GET',headers:{accept:'text/html,application/xhtml+xml'},mode:'cors',credentials:'omit',redirect:'follow',cache:'no-store',signal:controller.signal});
+        if(!response.ok)throw Error(`原始网页返回 HTTP ${response.status}`);
+        const size=Number(response.headers.get('content-length')||0);if(size>5*1024*1024)throw Error('原始网页超过 5 MB，浏览器未自动读取');
+        const buffer=await response.arrayBuffer();if(buffer.byteLength>5*1024*1024)throw Error('原始网页超过 5 MB，浏览器未自动读取');
+        const candidate=parseWebPage(decodeWebHtml(buffer,response.headers.get('content-type')||''),response.url||parsed.url);
+        if(!candidate.title)throw Error('网页可访问，但未能提取页面题名');
+        return candidate;
+      }finally{clearTimeout(timer)}
+    }
+    function webTitleAgreement(submitted,verified){
+      const a=normalizeText(submitted),b=normalizeText(verified);if(!a||!b)return 0;if(a===b)return 1;if((a.includes(b)||b.includes(a))&&Math.min(a.length,b.length)>=6)return .98;return diceSimilarity(a,b);
+    }
+    function webAuthorAgreement(submitted,verified){
+      const expected=splitSubmittedAuthors(submitted),actual=verified||[];if(!expected.length||!actual.length)return null;
+      const scores=expected.map(name=>Math.max(...actual.map(other=>diceSimilarity(name,other))));return scores.reduce((sum,value)=>sum+value,0)/scores.length;
+    }
+    function comparableUrl(value){
+      try{const url=new URL(value);url.hash='';url.hostname=url.hostname.toLowerCase().replace(/^www\./,'');url.pathname=url.pathname.replace(/\/+$/,'')||'/';return`${url.hostname}${url.pathname}${url.search}`}catch(e){return String(value||'')}
+    }
+    function webCanonicalCitation(candidate,parsed){
+      const names=(candidate.authors?.length?candidate.authors:splitSubmittedAuthors(parsed.authors)).map(displayName).filter(Boolean),authors=names.join('，'),title=cleanWebField(candidate.title||parsed.title),publicationDate=candidate.publicationDate||parsed.publicationDate||'',accessDate=parsed.accessDate||'';
+      let citation=`${authors?`${authors}. `:''}${title}[EB/OL]`;
+      if(publicationDate)citation+=`. (${publicationDate})`;if(accessDate)citation+=`[${accessDate}]`;citation+=`. ${candidate.sourceUrl||parsed.url}`;return`${citation.replace(/\.\./g,'.')}.`;
+    }
+    async function verifyWebReference(reference,parsed){
+      const evidenceLinks=webEvidenceLinks(parsed);
+      if(!parsed.url)return{status:'unverified',confidence:0,submitted:reference,differences:[],note:'识别为网络文献，但未提取到可访问的 http/https 网址，无法读取原始页面。',checkedSources:[],evidenceLinks};
+      try{
+        const candidate=await fetchWebCandidate(parsed),titleScore=webTitleAgreement(parsed.title,candidate.title),authorScore=webAuthorAgreement(parsed.authors,candidate.authors),dateScore=parsed.publicationDate&&candidate.publicationDate?(parsed.publicationDate===candidate.publicationDate?1:0):null,weights=[[1,.22],[titleScore,.55]];
+        if(authorScore!==null)weights.push([authorScore,.12]);if(dateScore!==null)weights.push([dateScore,.11]);
+        const confidence=weights.reduce((sum,[value,weight])=>sum+value*weight,0)/weights.reduce((sum,[,weight])=>sum+weight,0),diffs=[],add=(field,submitted,verified)=>diffs.push({field,submitted:submitted||'未提供',verified:verified||'未提供'});
+        const submittedTitle=normalizeText(parsed.title),verifiedTitle=normalizeText(candidate.title);
+        if(parsed.title&&candidate.title&&submittedTitle!==verifiedTitle&&titleScore>=.72)add('题名（官网全称）',parsed.title,candidate.title);
+        if(parsed.authors&&candidate.authors.length&&authorScore<.72)add('作者',parsed.authors,candidate.authors.map(displayName).join('，'));
+        if(parsed.publicationDate&&candidate.publicationDate&&dateScore===0)add('发布日期',parsed.publicationDate,candidate.publicationDate);
+        if(comparableUrl(parsed.url)!==comparableUrl(candidate.sourceUrl))add('网址（最终地址）',parsed.url,candidate.sourceUrl);
+        const today=new Date(),todayValue=`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`,logicalDateProblem=!!(parsed.accessDate&&((candidate.publicationDate&&parsed.accessDate<candidate.publicationDate)||parsed.accessDate>todayValue));
+        if(logicalDateProblem)add('访问日期',parsed.accessDate,candidate.publicationDate&&parsed.accessDate<candidate.publicationDate?`不应早于发布日期 ${candidate.publicationDate}`:`不应晚于今天 ${todayValue}`);
+        const source=candidate.source,matched=[];if(authorScore!==null&&authorScore>=.85)matched.push('作者');if(dateScore===1)matched.push('发布日期');
+        if(titleScore<.72)return{status:'review',confidence,submitted:reference,differences:diffs,note:`已成功读取该网址，但提交题名与页面题名匹配不足；网址可能指向了不同内容，请人工核对。`,canonical:webCanonicalCitation(candidate,parsed),sourceUrl:candidate.sourceUrl,source,checkedSources:[source],evidenceLinks};
+        const missing=[];if(parsed.authors&&!candidate.authors.length)missing.push('作者');if(parsed.publicationDate&&!candidate.publicationDate)missing.push('发布日期');
+        const status=logicalDateProblem?'corrected':diffs.length?'corrected':missing.length?'partial':'verified',matchNote=matched.length?`，${matched.join('和')}一致`:'';
+        let note=`已直接读取${source}，网址当前可访问，页面题名可确认${matchNote}。`;
+        if(submittedTitle!==verifiedTitle&&titleScore>=.72)note+=' 提交题名是官网题名的缩写或近似写法，已给出官网完整题名。';
+        if(missing.length)note+=` 页面未提供可自动读取的${missing.join('、')}，相关字段仍需人工复核。`;
+        if(parsed.accessDate&&!logicalDateProblem)note+=' 访问日期的先后关系合理；该日期无法由今天的页面反推，只作逻辑校验。';
+        return{status,confidence,submitted:reference,differences:diffs,note,canonical:webCanonicalCitation(candidate,parsed),sourceUrl:candidate.sourceUrl,source,checkedSources:[source],evidenceLinks};
+      }catch(e){
+        const reason=e.name==='AbortError'?'读取原始网页超时':e.message||'浏览器无法读取原始网页';
+        return{status:'unverified',confidence:0,submitted:reference,differences:[],note:`${reason}。目标网站可能暂时不可用或禁止跨域读取；本站不会因此把文献判为虚假，请通过原网址或百度入口继续核对。`,sourceUrl:parsed.url,source:'提交的原始网址',checkedSources:[],evidenceLinks};
+      }
     }
     let chineseJournalIndexPromise;
     async function loadChineseJournalIndex(){
@@ -316,6 +432,7 @@
     }
     async function verifyOne(reference){
       const parsed=parseReference(reference);
+      if(parsed.type==='EB/OL'||(parsed.url&&!parsed.doi&&!['J','C','M','D','R'].includes(parsed.type)))return verifyWebReference(reference,parsed);
       try{
         const jobs=[queryCrossref(parsed),queryOpenAlex(parsed)];if(parsed.doi)jobs.push(queryDoiRegistry(parsed));
         const checks=await Promise.allSettled(jobs),available=checks.filter(x=>x.status==='fulfilled').map(x=>x.value.source),all=checks.flatMap(x=>x.status==='fulfilled'?x.value.candidates:[]);
