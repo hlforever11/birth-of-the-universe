@@ -29,11 +29,11 @@
       <textarea id="input" aria-label="参考文献列表" placeholder="例如：&#10;[1] 作者. 篇名[J]. 刊名, 2024, 12(3): 20-28. DOI: …&#10;[2] Author. (2023). Title. Journal, 8(2), 10–19."></textarea>
       <div class="actions"><div class="counter" id="counter"><strong>0</strong> / 20</div><div class="action-buttons"><button class="secondary" id="clearBtn" type="button" disabled>清空</button><button class="primary" id="verifyBtn" type="button" disabled>开始核验</button></div></div>
     </section>
-    <div class="trust"><span><b>✓</b> 不把“数据库未收录”直接判为虚假</span><span><b>✓</b> 中文增强：期刊名录 · DOI 元数据 · 原始网页 · 大陆复核入口</span></div>
+    <div class="trust"><span><b>✓</b> 不把“数据库未收录”直接判为虚假</span><span><b>✓</b> 中文增强：期刊名录 · DOI 元数据 · 原始网页 · 多源复核入口</span></div>
     <section class="results hidden" id="results"><div class="results-head"><h2>核验结果</h2><div class="progress" id="progress"></div></div><div class="summary" id="summary"></div><div id="cards"></div></section>
     <section class="boundary" id="limits"><div class="kicker">BOUNDARIES</div><h2>“未核实”不等于“虚假”</h2><p>网络文献优先读取所提交的原始网址；若目标网站允许跨域访问，系统会直接比对页面题名、作者和发布日期。带有永久标识的机构库文献若禁止跨域读取，系统会优先改查同一出版机构的公开书目接口。其他仍无法读取的网站会保留官网与百度复核入口，不会把技术性拦截误判成文献虚假。访问日期只能检查时间先后是否合理，无法由今天的网页反推当日访问事实。</p></section>
   </main>
-  <footer><div>核验请求由浏览器直接发送；网页文献不经过境外代理，优先访问所提交的原始官网。重要用途请以出版者原始记录为准。</div><div class="footer-meta"><a class="author-email" href="mailto:linhu@scu.edu.cn" aria-label="网站联系邮箱">linhu@scu.edu.cn</a><span class="site-counter" id="siteCounter" aria-live="polite" title="本站累计页面访问量"><span class="dot" aria-hidden="true">·</span><span>累计访问 <span class="site-counter-value" id="busuanzi_site_pv">—</span> 次</span></span></div></footer>
+  <footer><div>核验请求由浏览器直接发送；网页文献优先访问所提交的原始官网。重要用途请以出版者原始记录为准。</div><div class="footer-meta"><a class="author-email" href="mailto:linhu@scu.edu.cn" aria-label="网站联系邮箱">linhu@scu.edu.cn</a><span class="site-counter" id="siteCounter" aria-live="polite" title="本站累计页面访问量"><span class="dot" aria-hidden="true">·</span><span>累计访问 <span class="site-counter-value" id="busuanzi_site_pv">—</span> 次</span></span></div></footer>
   <script src="./vendor/mammoth.browser.min.js"></script>
   <script defer src="https://cdn.busuanzi.cc/busuanzi/3.6.9/busuanzi.min.js"></script>
   <script type="module">
@@ -50,19 +50,42 @@
       const visitObserver=new MutationObserver(()=>{if(revealVisitCounter())visitObserver.disconnect()});visitObserver.observe(visitValue,{childList:true,subtree:true,characterData:true});setTimeout(()=>visitObserver.disconnect(),10000);
     }
     const sample=['[1] 李书宁,刘一鸣. ChatGPT类智能对话工具兴起对图书馆行业的机遇与挑战[J]. 图书馆论坛, 2023, 43(05): 104-110.','[2] 陈金榜.朱民博士畅谈ChatGPT与人工智能未来[EB/OL].(2023-03-13)[2023-04-18]. https://www.shanghaitech.edu.cn/2023/0313/c1001a1075770/page.htm','[3] BENDER E M, GEBRU T, MCMILLAN-MAJOR A, et al. On the dangers of stochastic parrots: Can language models be too big?[C]//Proceedings of the 2021 ACM Conference on Fairness, Accountability, and Transparency. 2021: 610-623. DOI:10.1145/3442188.3445922.'].join('\n');
-    function inlineNumberedRefs(clean){
-      const markers=[...clean.matchAll(/\[\s*(\d{1,3})\s*\]/g)].filter(match=>match.index===0||/[\s。.;；]/.test(clean[match.index-1]||''));
-      if(markers.length<2||clean.slice(0,markers[0].index).trim())return[];
-      const increasing=markers.every((marker,index)=>!index||Number(marker[1])>Number(markers[index-1][1]));if(!increasing)return[];
-      return markers.map((marker,index)=>clean.slice(marker.index,markers[index+1]?.index??clean.length).replace(/\s*\n\s*/g,' ').trim()).filter(Boolean);
+    const numberedReferenceStart=/^(?:\[\s*\d{1,3}\s*\]|\d{1,3}[.、)])\s*/;
+    const bibliographicCue=value=>/(?:18|19|20)\d{2}|\[[A-Z/]+\]|https?:\/\/|10\.\d{4,9}\//i.test(String(value||''));
+    function normalizeReferenceChunk(value){return String(value||'').replace(/\s*\n\s*/g,' ').replace(/[\t\u00a0 ]+/g,' ').trim()}
+    function looksLikeReferenceStart(value){
+      const text=String(value||'').trim();if(!text)return false;if(numberedReferenceStart.test(text))return true;
+      const apa=text.match(/^(.{1,140}?)\(\s*((?:18|19|20)\d{2})[a-z]?\s*\)\s*[.。]/u);
+      if(apa){
+        const author=apa[1].trim().replace(/[.。]\s*$/,'');
+        if(/^\p{L}/u.test(author)&&(/[,，;&；]/.test(author)||/\b(?:and)\b|&/i.test(author)||/^[A-Z][A-Z0-9 .&'’\/-]{1,100}$/.test(author)||/^[\p{Lu}][\p{L}'’.-]*(?:\s+[\p{Lu}][\p{L}'’.-]*){0,7}$/u.test(author)))return true;
+      }
+      const chineseHead=text.match(/^(.{2,48}?)[.。]/u)?.[1]?.trim();
+      return!!(chineseHead&&/^[\p{Script=Han}·]{2,}(?:\s*[,，、]\s*[\p{Script=Han}·]{2,}){0,12}$/u.test(chineseHead)&&bibliographicCue(text));
     }
-    function refs(v){const clean=v.replace(/\r/g,'').trim();if(!clean)return[];const inline=inlineNumberedRefs(clean);if(inline.length>1)return inline;const numbered=clean.split(/\n(?=\s*(?:\[\d+\]|\d+[.、]))/).map(x=>x.replace(/\s*\n\s*/g,' ').trim()).filter(Boolean);if(numbered.length>1)return numbered;const paras=clean.split(/\n\s*\n+/).map(x=>x.replace(/\s*\n\s*/g,' ').trim()).filter(Boolean);return paras.length>1?paras:clean.split('\n').map(x=>x.trim()).filter(Boolean)}
+    function inlineNumberedMarkers(clean){
+      const markers=[...clean.matchAll(/\[\s*(\d{1,3})\s*\]/g)].filter(match=>match.index===0||/[\s。.;；]/.test(clean[match.index-1]||''));
+      return markers.length>=2?markers:[];
+    }
+    function refs(value){
+      let clean=String(value||'').replace(/\r/g,'').replace(/^\s*(?:参考文献|主要参考文献|引用文献|references|bibliography|works cited)\s*[:：]?\s*/i,'').trim();if(!clean)return[];
+      const starts=new Set([0]);inlineNumberedMarkers(clean).forEach(marker=>starts.add(marker.index));
+      for(const lineBreak of clean.matchAll(/\n+/g)){
+        const index=lineBreak.index+lineBreak[0].length,nextLine=(clean.slice(index).split('\n',1)[0]||'').trim();
+        if(nextLine&&(looksLikeReferenceStart(nextLine)||lineBreak[0].length>1&&bibliographicCue(nextLine)))starts.add(index);
+      }
+      const positions=[...starts].sort((a,b)=>a-b),segmented=positions.map((start,index)=>normalizeReferenceChunk(clean.slice(start,positions[index+1]??clean.length))).filter(Boolean);
+      if(segmented.length>1)return segmented;
+      const paragraphs=clean.split(/\n\s*\n+/).map(normalizeReferenceChunk).filter(Boolean);if(paragraphs.length>1)return paragraphs;
+      const lines=clean.split('\n').map(normalizeReferenceChunk).filter(Boolean);if(lines.length>1&&lines.every(line=>looksLikeReferenceStart(line)||bibliographicCue(line)))return lines;
+      return[normalizeReferenceChunk(clean)];
+    }
     function update(){const n=refs(input.value).length;counter.innerHTML=`<strong>${n}</strong> / 20`;counter.classList.toggle('over',n>MAX);verifyBtn.disabled=!n||n>MAX;clearBtn.disabled=!input.value.trim()}
     function clearInput(){input.value='';fileInput.value='';msg.textContent='';msg.className='message hidden';$('#results').classList.add('hidden');$('#cards').innerHTML='';$('#summary').innerHTML='';$('#progress').textContent='';verifyBtn.textContent='开始核验';update();input.focus()}
     input.addEventListener('input',update);clearBtn.onclick=clearInput;$('#sampleBtn').onclick=()=>{input.value=sample;update();input.focus()};$('#chooseBtn').onclick=()=>fileInput.click();fileInput.onchange=()=>fileInput.files[0]&&handleFile(fileInput.files[0]);
     ['dragenter','dragover'].forEach(e=>drop.addEventListener(e,x=>{x.preventDefault();drop.classList.add('drag')}));['dragleave','drop'].forEach(e=>drop.addEventListener(e,x=>{x.preventDefault();drop.classList.remove('drag')}));drop.addEventListener('drop',e=>e.dataTransfer.files[0]&&handleFile(e.dataTransfer.files[0]));
     function fileState(text,kind=''){msg.className=`message ${kind}`;msg.textContent=text;msg.classList.remove('hidden')}
-    function extractReferences(text){const normalized=text.replace(/\s*(参考文献|主要参考文献|引用文献|references|bibliography|works cited)\s*[:：]?\s*/gi,'\n$1\n').replace(/\s+(?=\[\s*\d+\s*\]\s*)/g,'\n');const lines=normalized.replace(/\r/g,'').replace(/\u00a0/g,' ').split('\n').map(x=>x.replace(/\s+/g,' ').trim());let heading=-1;lines.forEach((x,i)=>{/^(?:参考文献|主要参考文献|引用文献|references|bibliography|works cited)\s*[:：]?$/i.test(x)&&(heading=i)});const source=(heading>=0?lines.slice(heading+1):lines).filter(Boolean),out=[];let current='';const start=/^(?:\[\s*\d+\s*\]|\d{1,3}[.、)])\s*/;if(source.some(x=>start.test(x))){source.forEach(x=>{if(start.test(x)){if(current)out.push(current.trim());current=x}else if(current)current+=' '+x});if(current)out.push(current.trim())}else out.push(...source.filter(x=>/(?:18|19|20)\d{2}/.test(x)&&(/[.。]/.test(x)||/10\.\d{4,9}\//i.test(x))));if(!out.length)throw Error('未识别出参考文献。请确认文档含“参考文献”标题及带序号的条目，扫描版 PDF 请先做文字识别。');return out}
+    function extractReferences(text){const normalized=text.replace(/\s*(参考文献|主要参考文献|引用文献|references|bibliography|works cited)\s*[:：]?\s*/gi,'\n$1\n').replace(/\s+(?=\[\s*\d+\s*\]\s*)/g,'\n');const lines=normalized.replace(/\r/g,'').replace(/\u00a0/g,' ').split('\n').map(x=>x.replace(/\s+/g,' ').trim());let heading=-1;lines.forEach((x,i)=>{/^(?:参考文献|主要参考文献|引用文献|references|bibliography|works cited)\s*[:：]?$/i.test(x)&&(heading=i)});const source=(heading>=0?lines.slice(heading+1):lines).filter(Boolean),out=[];let current='';if(source.some(x=>numberedReferenceStart.test(x))){source.forEach(x=>{if(numberedReferenceStart.test(x)||looksLikeReferenceStart(x)){if(current)out.push(current.trim());current=x}else if(current)current+=' '+x});if(current)out.push(current.trim())}else out.push(...source.filter(x=>bibliographicCue(x)&&(/[.。]/.test(x)||/10\.\d{4,9}\//i.test(x))));if(!out.length)throw Error('未识别出参考文献。请确认文档含“参考文献”标题及带序号的条目，扫描版 PDF 请先做文字识别。');return out}
     async function handleFile(file){try{if(file.size>MAX_SIZE)throw Error('文件不能超过 15 MB。');const ext=file.name.split('.').pop().toLowerCase();if(!['docx','pdf','txt'].includes(ext))throw Error('暂只支持 DOCX、文字版 PDF 和 TXT。');fileState('正在本地读取文档…');let text='';if(ext==='txt')text=new TextDecoder('utf-8').decode(await file.arrayBuffer());else if(ext==='docx'){if(!window.mammoth)throw Error('DOCX 解析组件加载失败，请刷新后重试。');text=(await window.mammoth.extractRawText({arrayBuffer:await file.arrayBuffer()})).value}else{const pdf=await pdfjsLib.getDocument({data:new Uint8Array(await file.arrayBuffer())}).promise;if(pdf.numPages>100)throw Error('PDF 超过 100 页，请只保留参考文献部分。');const pages=[];for(let n=1;n<=pdf.numPages;n++){const content=await(await pdf.getPage(n)).getTextContent();pages.push(content.items.map(i=>i.str+(i.hasEOL?'\n':' ')).join(''))}text=pages.join('\n')};const list=extractReferences(text),shown=list.slice(0,MAX);input.value=shown.join('\n');update();fileState(`从 ${file.name} 识别出 ${list.length} 条参考文献，已载入${list.length>MAX?'前 20 条':'待核验区'}。`,'success')}catch(e){fileState(e.message||'读取文档失败。','error')}finally{fileInput.value=''}}
     const esc=s=>String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
     const meta={verified:['真实且字段一致','✓'],partial:['真实，部分字段待复核','✓'],corrected:['真实但需要修正','!'],review:['找到近似记录','?'],unverified:['暂未核实','—'],error:['核验失败','×']};
@@ -503,7 +526,7 @@
         }
         const checked=[...new Set(available)],evidenceBase=mainlandEvidenceLinks(parsed,parsed.doi);
         if(!checked.length)throw Error('所有开放核验源均无法连接');
-        if(!candidates.length)return{status:'unverified',confidence:0,submitted:reference,differences:[],note:`已查询 ${checked.join('、')}，未检出可自动确认的记录。请使用下方大陆公开检索继续复核；未收录不等于虚假。`,checkedSources:checked,evidenceLinks:evidenceBase};
+        if(!candidates.length)return{status:'unverified',confidence:0,submitted:reference,differences:[],note:`已查询 ${checked.join('、')}，未检出可自动确认的记录。请使用下方公开检索入口继续复核；未收录不等于虚假。`,checkedSources:checked,evidenceLinks:evidenceBase};
         const best=ranked[0],confidence=best.metrics.score,evidenceLinks=mainlandEvidenceLinks(parsed,best.candidate.doi||parsed.doi);
         if(confidence<.67)return{status:'unverified',confidence,submitted:reference,differences:[],note:`已查询 ${checked.join('、')}，但没有找到足以确认的同一文献；这可能是未收录或著录信息不足，不应仅据此判为虚假。`,checkedSources:checked,evidenceLinks};
         const diffs=differences(parsed,best.candidate,best.metrics),source=best.candidate.sources.join(' + '),unavailable=['Crossref','OpenAlex'].filter(name=>!checked.includes(name)),connectionNote=unavailable.length===2?'；两个通用数据库本次均未提供可用结果':unavailable.length?`；${unavailable[0]} 本次未连通`:'';
@@ -511,10 +534,10 @@
         const partialFields=best.candidate.partialFields||[],status=diffs.length?'corrected':partialFields.length?'partial':'verified';
         let note=diffs.length?`已在 ${source} 找到同一文献，以下字段与来源记录不一致${connectionNote}。`:`已在 ${source} 找到高度一致的记录${connectionNote}。`;
         if(partialFields.length&&!diffs.length)note=`已由 DOI 注册元数据确认篇名、年份、期刊、卷期、首页和 DOI；注册记录未完整提供${partialFields.join('、')}，本站保留原著录，并提供百度、万方入口供继续核对。`;
-        if(partialFields.length&&diffs.length)note+=` DOI 注册记录未完整提供${partialFields.join('、')}，相关原著录仍需通过下方大陆入口复核。`;
+        if(partialFields.length&&diffs.length)note+=` DOI 注册记录未完整提供${partialFields.join('、')}，相关原著录仍需通过下方公开检索入口复核。`;
         return{status,confidence,submitted:reference,differences:diffs,note,canonical:canonicalCitation(best.candidate,parsed),sourceUrl:best.candidate.sourceUrl,source,checkedSources:checked,evidenceLinks};
       }catch(e){
-        return{status:'error',confidence:0,submitted:reference,differences:[],note:`核验失败：${e.name==='AbortError'?'开放数据源连接超时':e.message||'网络错误'}。可使用下方大陆公开检索继续复核。`,checkedSources:[],evidenceLinks:mainlandEvidenceLinks(parsed,parsed.doi)};
+        return{status:'error',confidence:0,submitted:reference,differences:[],note:`核验失败：${e.name==='AbortError'?'开放数据源连接超时':e.message||'网络错误'}。可使用下方公开检索入口继续复核。`,checkedSources:[],evidenceLinks:mainlandEvidenceLinks(parsed,parsed.doi)};
       }
     }
     verifyBtn.onclick=async()=>{const list=refs(input.value);if(!list.length||list.length>MAX)return;verifyBtn.disabled=true;clearBtn.disabled=true;verifyBtn.innerHTML='<span class="spinner"></span>核验中';$('#results').classList.remove('hidden');$('#cards').innerHTML='';$('#summary').innerHTML='';$('#progress').textContent=`0 / ${list.length}`;const out=new Array(list.length);let next=0,done=0;async function worker(){while(next<list.length){const i=next++;out[i]=await verifyOne(list[i]);done++;$('#progress').textContent=`${done} / ${list.length}`;render(out.filter(Boolean))}}await Promise.all(Array.from({length:Math.min(2,list.length)},worker));verifyBtn.textContent='重新核验';update();$('#results').scrollIntoView({behavior:'smooth',block:'start'})};
