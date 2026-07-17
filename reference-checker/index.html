@@ -31,7 +31,7 @@
     </section>
     <div class="trust"><span><b>✓</b> 不把“数据库未收录”直接判为虚假</span><span><b>✓</b> 中文增强：期刊名录 · DOI 元数据 · 原始网页 · 大陆复核入口</span></div>
     <section class="results hidden" id="results"><div class="results-head"><h2>核验结果</h2><div class="progress" id="progress"></div></div><div class="summary" id="summary"></div><div id="cards"></div></section>
-    <section class="boundary" id="limits"><div class="kicker">BOUNDARIES</div><h2>“未核实”不等于“虚假”</h2><p>网络文献优先读取所提交的原始网址；若目标网站允许跨域访问，系统会直接比对页面题名、作者和发布日期。少数网站会禁止浏览器读取，此时会保留官网与百度复核入口，不会把技术性拦截误判成文献虚假。访问日期只能检查时间先后是否合理，无法由今天的网页反推当日访问事实。</p></section>
+    <section class="boundary" id="limits"><div class="kicker">BOUNDARIES</div><h2>“未核实”不等于“虚假”</h2><p>网络文献优先读取所提交的原始网址；若目标网站允许跨域访问，系统会直接比对页面题名、作者和发布日期。带有永久标识的机构库文献若禁止跨域读取，系统会优先改查同一出版机构的公开书目接口。其他仍无法读取的网站会保留官网与百度复核入口，不会把技术性拦截误判成文献虚假。访问日期只能检查时间先后是否合理，无法由今天的网页反推当日访问事实。</p></section>
   </main>
   <footer><div>核验请求由浏览器直接发送；网页文献不经过境外代理，优先访问所提交的原始官网。重要用途请以出版者原始记录为准。</div><a class="author-email" href="mailto:linhu@scu.edu.cn" aria-label="网站联系邮箱">linhu@scu.edu.cn</a></footer>
   <script src="./vendor/mammoth.browser.min.js"></script>
@@ -120,8 +120,15 @@
         const authorLabel=body.match(/(?:作者|author)\s*[:：]\s*(.+?)(?=\s*[;；]\s*(?:题名|标题|title)\s*[:：])/i),titleLabel=body.match(/(?:题名|标题|title)\s*[:：]\s*(.+?)(?=\s*[;；]\s*(?:日期|发布时间|网址|url)\s*[:：]|\s*\(?\s*(?:18|19|20)\d{2})/i);
         if(authorLabel&&titleLabel){authors=cleanValue(authorLabel[1]);title=cleanValue(titleLabel[1])}
         else{
-          const beforeDate=cleanValue(body.split(/\(?\s*(?:18|19|20)\d{2}(?:\s*[年\-/.]\s*\d{1,2})?/)[0]),parts=beforeDate.split(/[.。]\s*/).map(cleanValue).filter(Boolean);
-          if(parts.length>1){authors=parts.shift()||'';title=parts.join('. ')}else title=beforeDate;
+          const apaWeb=body.match(/^(.+?)\.\s*\(\s*((?:18|19|20)\d{2})\s*\)\s*\.\s*(.+)$/);
+          if(apaWeb){
+            authors=cleanValue(apaWeb[1]);
+            const parts=cleanValue(apaWeb[3]).replace(/\[\s*(?:18|19|20)\d{2}(?:\s*[年\-/.]\s*\d{1,2}(?:\s*[月\-/.]\s*\d{1,2}\s*日?)?)?\s*\]\s*[.。]?$/,'').split(/[.。]\s+/).map(cleanValue).filter(Boolean);
+            title=parts.shift()||'';container=parts.join('. ');
+          }else{
+            const beforeDate=cleanValue(body.split(/\(?\s*(?:18|19|20)\d{2}(?:\s*[年\-/.]\s*\d{1,2})?/)[0]),parts=beforeDate.split(/[.。]\s*/).map(cleanValue).filter(Boolean);
+            if(parts.length>1){authors=parts.shift()||'';title=parts.join('. ')}else title=beforeDate;
+          }
         }
       }else{
         const yearMarker=body.match(/\(?((?:18|19|20)\d{2})[a-z]?\)?\s*[.,，。]/i);
@@ -151,9 +158,19 @@
       if(doi)links.unshift({label:'万方 DOI 记录',url:`https://doi.wanfangdata.com.cn/${encodeURIComponent(doi)}`});
       return links;
     }
+    function unesdocArk(value){
+      try{
+        const url=new URL(value);if(url.hostname.toLowerCase()!=='unesdoc.unesco.org')return null;
+        const match=decodeURIComponent(url.pathname).match(/^\/ark:\/48223\/(pf\d+)(\/[A-Za-z0-9._-]+)?\/?$/i);if(!match)return null;
+        const suffix=(match[2]||'').replace(/\/+$/,'');
+        return{id:match[1].toLowerCase(),recordUrl:`https://unesdoc.unesco.org/ark:/48223/${match[1].toLowerCase()}${suffix}`,baseUrl:`https://unesdoc.unesco.org/ark:/48223/${match[1].toLowerCase()}`};
+      }catch(e){return null}
+    }
     function webEvidenceLinks(parsed){
       const terms=[parsed.title?`"${parsed.title}"`:'',parsed.authors,parsed.url?`site:${new URL(parsed.url).hostname}`:''].filter(Boolean).join(' ');
-      return hasHan(parsed.raw)?[{label:'百度检索同页',url:`https://www.baidu.com/s?wd=${encodeURIComponent(terms)}`}]:[];
+      const ark=unesdocArk(parsed.url),links=ark?[{label:'UNESDOC 原文',url:ark.recordUrl},{label:'UNESCO 官方书目目录',url:'https://data.unesco.org/explore/dataset/doc001/?flg=en-us'}]:[];
+      if(hasHan(parsed.raw))links.push({label:'百度检索同页',url:`https://www.baidu.com/s?wd=${encodeURIComponent(terms)}`});
+      return links;
     }
     function cleanWebField(value){return String(value||'').replace(/[\u00a0\s]+/g,' ').replace(/^\s*[|｜·•—–_-]+\s*|\s*[|｜·•—–_-]+\s*$/g,'').trim()}
     function firstPageValue(doc,selectors){
@@ -199,6 +216,25 @@
         return candidate;
       }finally{clearTimeout(timer)}
     }
+    function englishTextDate(value){
+      const months={january:'01',february:'02',march:'03',april:'04',may:'05',june:'06',july:'07',august:'08',september:'09',october:'10',november:'11',december:'12'},match=String(value||'').match(/\b(\d{1,2})\s+(January|February|March|April|May|June|July|August|September|October|November|December)\s+((?:18|19|20)\d{2})\b/i);
+      return match?`${match[3]}-${months[match[2].toLowerCase()]}-${String(Number(match[1])).padStart(2,'0')}`:'';
+    }
+    async function fetchUnesdocCandidate(parsed){
+      const ark=unesdocArk(parsed.url);if(!ark)throw Error('不是可识别的 UNESDOC ARK 地址');
+      const query=async recordUrl=>{const endpoint=new URL('https://data.unesco.org/api/explore/v2.1/catalog/datasets/doc001/records');endpoint.searchParams.set('where',`url="${recordUrl}"`);endpoint.searchParams.set('limit','5');return fetchJson(endpoint.href)};
+      let data=await query(ark.recordUrl),record=(data.results||[]).find(item=>comparableUrl(item.url)===comparableUrl(ark.recordUrl));
+      if(!record&&ark.recordUrl!==ark.baseUrl){data=await query(ark.baseUrl);record=(data.results||[]).find(item=>comparableUrl(item.url)===comparableUrl(ark.baseUrl))}
+      if(!record)throw Error('UNESCO 官方目录中未检出该 ARK 记录');
+      const catalogYear=String((Array.isArray(record.year)?record.year[0]:record.year)||''),adoptionDate=englishTextDate(record.description),creator=cleanWebField(record.creator||'UNESCO'),publicationDate=normalizeDate(catalogYear),acceptedPublicationDates=[publicationDate,adoptionDate].filter(Boolean);
+      return{source:'UNESCO DataHub（UNESDOC 官方目录）',sources:['UNESCO DataHub（UNESDOC 官方目录）'],title:cleanWebField(record.title),authors:creator?[creator]:[],authorKeys:creator?[normalizeText(creator)]:[],year:publicationDate?Number(publicationDate.slice(0,4)):null,publicationDate,citationDate:adoptionDate?adoptionDate.slice(0,4):publicationDate,acceptedPublicationDates,container:'United Nations Educational, Scientific and Cultural Organization',type:'report',sourceUrl:record.url||ark.recordUrl,url:record.url||ark.recordUrl,officialRecord:true,adoptionDate,catalogYear:publicationDate,recordCode:cleanWebField(record.ref_code)};
+    }
+    async function resolvedWebCandidate(parsed){
+      const ark=unesdocArk(parsed.url);if(!ark)return fetchWebCandidate(parsed);
+      try{return await fetchUnesdocCandidate(parsed)}catch(catalogError){
+        try{return await fetchWebCandidate(parsed)}catch(pageError){throw Error(`${catalogError.message}；${pageError.message||'原页面禁止跨域读取'}`)}
+      }
+    }
     function webTitleAgreement(submitted,verified){
       const a=normalizeText(submitted),b=normalizeText(verified);if(!a||!b)return 0;if(a===b)return 1;if((a.includes(b)||b.includes(a))&&Math.min(a.length,b.length)>=6)return .98;return diceSimilarity(a,b);
     }
@@ -206,11 +242,18 @@
       const expected=splitSubmittedAuthors(submitted),actual=verified||[];if(!expected.length||!actual.length)return null;
       const scores=expected.map(name=>Math.max(...actual.map(other=>diceSimilarity(name,other))));return scores.reduce((sum,value)=>sum+value,0)/scores.length;
     }
+    function webDateAgreement(submitted,candidate){
+      const expected=normalizeDate(submitted);if(!expected)return null;
+      const available=[candidate.citationDate,candidate.publicationDate,...(candidate.acceptedPublicationDates||[])].map(normalizeDate).filter(Boolean);if(!available.length)return null;
+      if(available.some(value=>value===expected||(expected.length===4&&value.startsWith(expected))))return 1;
+      if(expected.length>4&&available.every(value=>value.length===4))return null;
+      return 0;
+    }
     function comparableUrl(value){
       try{const url=new URL(value);url.hash='';url.hostname=url.hostname.toLowerCase().replace(/^www\./,'');url.pathname=url.pathname.replace(/\/+$/,'')||'/';return`${url.hostname}${url.pathname}${url.search}`}catch(e){return String(value||'')}
     }
     function webCanonicalCitation(candidate,parsed){
-      const names=(candidate.authors?.length?candidate.authors:splitSubmittedAuthors(parsed.authors)).map(displayName).filter(Boolean),authors=names.join('，'),title=cleanWebField(candidate.title||parsed.title),publicationDate=candidate.publicationDate||parsed.publicationDate||'',accessDate=parsed.accessDate||'';
+      const names=(candidate.authors?.length?candidate.authors:splitSubmittedAuthors(parsed.authors)).map(displayName).filter(Boolean),authors=names.join('，'),title=cleanWebField(candidate.title||parsed.title),publicationDate=candidate.citationDate||candidate.publicationDate||parsed.publicationDate||'',accessDate=parsed.accessDate||'';
       let citation=`${authors?`${authors}. `:''}${title}[EB/OL]`;
       if(publicationDate)citation+=`. (${publicationDate})`;if(accessDate)citation+=`[${accessDate}]`;citation+=`. ${candidate.sourceUrl||parsed.url}`;return`${citation.replace(/\.\./g,'.')}.`;
     }
@@ -218,13 +261,13 @@
       const evidenceLinks=webEvidenceLinks(parsed);
       if(!parsed.url)return{status:'unverified',confidence:0,submitted:reference,differences:[],note:'识别为网络文献，但未提取到可访问的 http/https 网址，无法读取原始页面。',checkedSources:[],evidenceLinks};
       try{
-        const candidate=await fetchWebCandidate(parsed),titleScore=webTitleAgreement(parsed.title,candidate.title),authorScore=webAuthorAgreement(parsed.authors,candidate.authors),dateScore=parsed.publicationDate&&candidate.publicationDate?(parsed.publicationDate===candidate.publicationDate?1:0):null,weights=[[1,.22],[titleScore,.55]];
+        const candidate=await resolvedWebCandidate(parsed),titleScore=webTitleAgreement(parsed.title,candidate.title),authorScore=webAuthorAgreement(parsed.authors,candidate.authors),dateScore=webDateAgreement(parsed.publicationDate,candidate),weights=[[1,.22],[titleScore,.55]];
         if(authorScore!==null)weights.push([authorScore,.12]);if(dateScore!==null)weights.push([dateScore,.11]);
         const confidence=weights.reduce((sum,[value,weight])=>sum+value*weight,0)/weights.reduce((sum,[,weight])=>sum+weight,0),diffs=[],add=(field,submitted,verified)=>diffs.push({field,submitted:submitted||'未提供',verified:verified||'未提供'});
         const submittedTitle=normalizeText(parsed.title),verifiedTitle=normalizeText(candidate.title);
         if(parsed.title&&candidate.title&&submittedTitle!==verifiedTitle&&titleScore>=.72)add('题名（官网全称）',parsed.title,candidate.title);
         if(parsed.authors&&candidate.authors.length&&authorScore<.72)add('作者',parsed.authors,candidate.authors.map(displayName).join('，'));
-        if(parsed.publicationDate&&candidate.publicationDate&&dateScore===0)add('发布日期',parsed.publicationDate,candidate.publicationDate);
+        if(parsed.publicationDate&&candidate.publicationDate&&dateScore===0)add('发布日期',parsed.publicationDate,candidate.citationDate||candidate.publicationDate);
         if(comparableUrl(parsed.url)!==comparableUrl(candidate.sourceUrl))add('网址（最终地址）',parsed.url,candidate.sourceUrl);
         const today=new Date(),todayValue=`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`,logicalDateProblem=!!(parsed.accessDate&&((candidate.publicationDate&&parsed.accessDate<candidate.publicationDate)||parsed.accessDate>todayValue));
         if(logicalDateProblem)add('访问日期',parsed.accessDate,candidate.publicationDate&&parsed.accessDate<candidate.publicationDate?`不应早于发布日期 ${candidate.publicationDate}`:`不应晚于今天 ${todayValue}`);
@@ -232,7 +275,8 @@
         if(titleScore<.72)return{status:'review',confidence,submitted:reference,differences:diffs,note:`已成功读取该网址，但提交题名与页面题名匹配不足；网址可能指向了不同内容，请人工核对。`,canonical:webCanonicalCitation(candidate,parsed),sourceUrl:candidate.sourceUrl,source,checkedSources:[source],evidenceLinks};
         const missing=[];if(parsed.authors&&!candidate.authors.length)missing.push('作者');if(parsed.publicationDate&&!candidate.publicationDate)missing.push('发布日期');
         const status=logicalDateProblem?'corrected':diffs.length?'corrected':missing.length?'partial':'verified',matchNote=matched.length?`，${matched.join('和')}一致`:'';
-        let note=`已直接读取${source}，网址当前可访问，页面题名可确认${matchNote}。`;
+        let note=candidate.officialRecord?`已按 ARK 永久标识在${source}查到同一记录，题名、责任机构和链接可确认${matchNote}。UNESDOC 原页面虽能正常打开，但禁止本站跨域读取；本站现改用 UNESCO 自己的公开书目接口核验。`:`已直接读取${source}，网址当前可访问，页面题名可确认${matchNote}。`;
+        if(candidate.officialRecord&&candidate.adoptionDate&&candidate.catalogYear&&candidate.adoptionDate.slice(0,4)!==candidate.catalogYear)note+=` 官方记录注明该建议于 ${candidate.adoptionDate} 通过，当前版本的目录出版年为 ${candidate.catalogYear}；提交的 ${parsed.publicationDate||candidate.adoptionDate.slice(0,4)} 作为通过年份可以接受。`;
         if(submittedTitle!==verifiedTitle&&titleScore>=.72)note+=' 提交题名是官网题名的缩写或近似写法，已给出官网完整题名。';
         if(missing.length)note+=` 页面未提供可自动读取的${missing.join('、')}，相关字段仍需人工复核。`;
         if(parsed.accessDate&&!logicalDateProblem)note+=' 访问日期的先后关系合理；该日期无法由今天的页面反推，只作逻辑校验。';
