@@ -19,7 +19,11 @@ html,body{width:100%;height:100%;margin:0;overflow:hidden;background:#050810}
 <div id="site-meta" aria-label="网站联系信息与访问次数"><a href="mailto:linhu@scu.edu.cn">linhu@scu.edu.cn</a><span class="sep">·</span><span>累计访问 <strong id="visit-count">统计中…</strong> 次</span></div>
 <script>
 const frame=document.getElementById('universe-app');
-frame.src='./universe/index.html'+location.search+location.hash;
+const appUrl=new URL('./universe/index.html',location.href);
+appUrl.search=location.search;
+appUrl.searchParams.set('v','20260908-repair1');
+appUrl.hash=location.hash;
+frame.src=appUrl.href;
 const count=document.getElementById('visit-count');
 const localKey='cosmic-chronicle-local-visits-v1';
 const localValue=()=>{try{const n=(Number(localStorage.getItem(localKey))||0)+1;localStorage.setItem(localKey,String(n));return n.toLocaleString('zh-CN')}catch{return '—'}};

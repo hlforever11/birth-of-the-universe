@@ -24,18 +24,29 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: universe/package-lock.json
+      - name: Build and validate the universe application
+        run: |
+          npm ci --prefix universe --no-audit --no-fund
+          npm run check --prefix universe
+          npm run build --prefix universe
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Prepare site
         run: |
           mkdir -p _site
-          rsync -a --exclude '.git' --exclude '_site' ./ _site/
+          rsync -a --exclude '.git' --exclude '.github' --exclude 'node_modules' --exclude '_site' ./ _site/
           python - <<'PY'
           from pathlib import Path
           page = Path('_site/index.html')
           text = page.read_text(encoding='utf-8')
           tag = '<script src="./site-meta.js" defer></script>'
-          if tag not in text:
+          if tag not in text and 'id="site-meta"' not in text:
               text = text.replace('</body>', tag + '\n</body>')
           page.write_text(text, encoding='utf-8')
           PY

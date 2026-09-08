@@ -1,0 +1,16 @@
+{
+  "name": "cosmos-universe-experience",
+  "private": true,
+  "version": "1.0.1",
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "check": "node --check src/main.js && node --check src/audio.js"
+  },
+  "dependencies": {
+    "three": "0.180.0"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.0"
+  }
+}

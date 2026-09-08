@@ -1,4 +1,5 @@
 (() => {
+  if (document.getElementById('site-meta')) return;
   const style = document.createElement('style');
   style.textContent = `
     #site-meta {
