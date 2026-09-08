@@ -228,8 +228,10 @@ de("#app").innerHTML = `
     <div class="bottom-bar"><div class="player-buttons"><button id="play" class="play-control" aria-label="自动播放 / Play">${Et("play")}${ze("自动播放", "Play")}</button><button id="restart" class="restart-button" aria-label="重新播放 / Replay">${Et("replay")}<span>${ze("重新播放", "Replay")}</span></button><span class="separator"></span><button id="speed" aria-label="播放速度 / Playback speed">1×</button></div><span class="player-note">${ze("空间在膨胀，故事在继续。", "SPACE EXPANDS. THE STORY CONTINUES.")}</span><button id="notes-button" class="notes-button">${ze("关于这段旅程", "About this journey")} ↗</button></div>
   </footer>
   <aside id="audio-panel" hidden><div class="panel-heading"><span>${ze("声音与解说", "Sound & narration")}</span><button class="icon-button" id="audio-close" aria-label="关闭音频设置">${Et("close")}</button></div>
-  ${[["zh", "中文解说", "Chinese narration"], ["en", "英文解说", "English narration"], ["music", "背景音乐", "Ambient music"], ["effects", "转场音效", "Sound effects"]].map(([i, e, t]) => `<label class="audio-row"><span>${ze(e, t)}<small>${i === "zh" ? "中文 · 普通话" : i === "en" ? "English" : i === "music" ? "AMBIENT SOUNDSCAPE" : "CINEMATIC TRANSITIONS"}</small></span><input id="audio-${i}" type="checkbox" role="switch"><span class="switch-ui"></span></label>`).join("")}
-  <p class="audio-note">${ze("使用设备支持的中英文语音解说。双语均开启时依次播放。音乐与音效为艺术设计。", "Uses available Chinese and English voices on your device. Both languages play sequentially. Music and effects are artistic sound design.")}</p></aside>
+  <fieldset class="narration-modes"><legend>${ze("解说语言", "Narration")}</legend><div class="narration-options">${[["off", "关闭", "Off"], ["zh", "中文", "中文"], ["en", "English", "English"], ["both", "双语", "Both"]].map(([value, zh, en]) => `<label><input type="radio" name="narration-mode" value="${value}" ${value === "off" ? "checked" : ""}><span>${ze(zh, en)}</span></label>`).join("")}</div></fieldset>
+  <p id="audio-status" class="audio-status" role="status" aria-live="polite"></p>
+  ${[["music", "背景音乐", "Ambient music"], ["effects", "转场音效", "Sound effects"]].map(([i, e, t]) => `<label class="audio-row"><span>${ze(e, t)}<small>${i === "zh" ? "中文 · 普通话" : i === "en" ? "English" : i === "music" ? "AMBIENT SOUNDSCAPE" : "CINEMATIC TRANSITIONS"}</small></span><input id="audio-${i}" type="checkbox" role="switch"><span class="switch-ui"></span></label>`).join("")}
+  <p class="audio-note">${ze("切换语言后从当前章节重新解说；双语模式按中文、英文依次播放。暂停时可预选语言，继续旅程后生效。", "Switching restarts narration in the current chapter. Both plays Chinese, then English. When paused, your selection takes effect on resume.")}</p></aside>
   <dialog id="chapter-dialog"><div class="dialog-top"><div class="eyebrow">THE CHAPTERS</div><button data-close="chapter-dialog" class="icon-button" aria-label="关闭章节">${Et("close")}</button></div><h2>${ze("138 亿年的故事", "A story of 13.8 billion years")}</h2><p class="dialog-intro">${ze("选择一个纪元，让旅程从那里继续。", "Choose an epoch and continue the journey from there.")}</p><div class="chapter-list">${rn.map((i, e) => `<button data-chapter="${e}"><span class="chapter-index">${String(e + 1).padStart(2, "0")}</span><span class="chapter-name">${ze(i.zh, i.en)}<small>${i.en}</small></span><span class="chapter-age">${ze(i.age, i.ageEn)}</span>${Et("arrow")}</button>`).join("")}</div></dialog>
   <dialog id="science-dialog"><div class="dialog-top"><div class="eyebrow">A NOTE ON THE SCIENCE</div><button data-close="science-dialog" class="icon-button" aria-label="关闭科学说明">${Et("close")}</button></div><h2>${ze("理解这段宇宙旅程", "Understanding this journey")}</h2><div class="science-content"><p>${ze("宇宙大爆炸描述的是早期宇宙从高温高密状态膨胀、冷却的过程。空间在各处整体膨胀，没有一个物质向外炸开的中心。", "The hot Big Bang describes an early hot, dense universe expanding and cooling. Space expands everywhere, without a central explosion.")}</p><p>${ze("时间轴按章节分段，各章长度代表叙事时长，不与真实时间成比例。拖动会改变章节内部的视觉演化；年龄标签表示该章对应的时代范围。", "The timeline is segmented by chapter. Length represents storytelling time, not proportional cosmic time. Scrubbing changes visual evolution within each epoch; age labels show the epoch’s time range.")}</p><p>${ze("画面中的颜色、尺度与镜头是科学概念的艺术示意，并非数值模拟或真实观测。微波背景与原子形成基本同时，星系和宇宙网则经历了持续的成长。", "Colors, scales and camera motions illustrate scientific concepts; this is not a numerical simulation or an observation. Recombination and photon decoupling overlap, while galaxies and the cosmic web grow over time.")}</p><div class="current-science-note" id="current-note"></div><h3>${ze("延伸阅读", "Explore the science")}</h3><a href="https://science.nasa.gov/universe/overview/" target="_blank" rel="noopener">NASA · The Universe’s History ↗</a><a href="https://science.nasa.gov/mission/webb/science-overview/science-explainers/what-were-the-first-stars-like/" target="_blank" rel="noopener">NASA / Webb · The First Stars ↗</a><a href="https://home.cern/science/physics/early-universe" target="_blank" rel="noopener">CERN · The Early Universe ↗</a><p class="keyboard-help">${ze("快捷键：空格 播放/暂停 · ← → 上下章 · F 全屏 · Esc 关闭面板", "Shortcuts: Space play/pause · ← → chapters · F fullscreen · Esc close panels")}</p></div></dialog>
   <div id="toast" role="status" aria-live="polite"></div>
@@ -256,7 +258,7 @@ function _a() {
   de("#play").innerHTML = Et(ct ? "pause" : "play") + (ft === "zh" ? ct ? "暂停" : "自动播放" : ct ? "Pause" : "Play"), de("#play").setAttribute("aria-label", ft === "zh" ? ct ? "暂停" : "自动播放" : ct ? "Pause" : "Play"), de(".scene-status").classList.toggle("paused", !ct), de(".scene-status").innerHTML = "<i></i>" + (ft === "zh" ? ct ? "宇宙演化进行中" : "时间已暂停" : ct ? "COSMIC EVOLUTION" : "TIME IS PAUSED");
 }
 function va() {
-  Rt || (Rt = true, de("#experience").classList.remove("intro-mode"), de("#intro").hidden = true, de("#journey").hidden = false, Ge.init(), Ot?.setEpoch(0, true), de("#cosmos").animate([{ opacity: 0 }, { opacity: 1 }], { duration: 1500, easing: "ease-out" }), Ti());
+  Rt || (Rt = true, de("#experience").classList.remove("intro-mode"), de("#intro").hidden = true, de("#journey").hidden = false, Ot?.setEpoch(0, true), de("#cosmos").animate([{ opacity: 0 }, { opacity: 1 }], { duration: 1500, easing: "ease-out" }), Ti());
 }
 function xn(i) {
   Rt || va(), i && Ft >= di && vn(0), ct = i, i ? (Ge.resume(), _n && (Ge.narrate(rn[$e]), _n = false)) : Ge.pause(), _a();
@@ -280,7 +282,7 @@ de("#restart").onclick = Qp;
 de("#previous").onclick = () => vn(($e - 1) * kt);
 de("#next").onclick = () => vn(($e + 1) * kt);
 de(".brand").onclick = (i) => {
-  i.preventDefault(), Ge.cancel(), Ge.pause(), Rt = false, ct = false, Ft = 0, $e = 0, de("#intro").hidden = false, de("#journey").hidden = true, de("#experience").classList.add("intro-mode"), Ot?.setEpoch(9), _a(), xa(), Ti();
+  i.preventDefault(), Ge.enterIntro(), Rt = false, ct = false, Ft = 0, $e = 0, de("#intro").hidden = false, de("#journey").hidden = true, de("#experience").classList.add("intro-mode"), Ot?.setEpoch(9), _a(), xa(), Ti();
 };
 function em() {
   de("#speed").onclick = () => {
@@ -330,12 +332,45 @@ function Ea(i) {
 }
 de("#audio-button").onclick = () => Ea(de("#audio-panel").hidden);
 de("#audio-close").onclick = () => Ea(false);
-for (const i of ["zh", "en", "music", "effects"]) de(`#audio-${i}`).onchange = (e) => {
-  const t = e.target.checked;
-  i === "music" ? Ge.setMusic(t) : Ge[i] = t, (i === "zh" || i === "en") && (Ge.available ? Rt && ct ? Ge.narrate(rn[$e]) : (Ge.cancel(), _n = true) : (xi("此浏览器没有语音合成功能；双语字幕仍可使用。"), Ge[i] = false, e.target.checked = false)), i === "effects" && t && Ge.chime($e), de("#audio-button").classList.toggle("enabled", Ge.zh || Ge.en || Ge.music || Ge.effects);
+function updateAudioUI() {
+  document.querySelectorAll('[name="narration-mode"]').forEach(input => { input.checked = input.value === Ge.mode; });
+  de("#audio-music").checked = Ge.music;
+  de("#audio-effects").checked = Ge.effects;
+  de("#audio-button").classList.toggle("enabled", Ge.mode !== "off" || Ge.music || Ge.effects);
+  const status = Ge.status, language = status.language === 'zh' ? (ft === 'zh' ? '中文' : 'Chinese') : (ft === 'zh' ? '英文' : 'English');
+  const messages = ft === 'zh' ? {
+    off: '解说已关闭', ready: '解说已就绪，随旅程播放', loading: `正在准备${language}解说…`,
+    speaking: `正在播放${language}解说`, paused: '已暂停，继续旅程后播放所选解说',
+    complete: '本章解说已结束', unavailable: `此设备暂无可用的${language}语音，字幕与动画继续播放`
+  } : {
+    off: 'Narration off', ready: 'Narration ready — start the journey', loading: `Preparing ${language} narration…`,
+    speaking: `${language} narration is playing`, paused: 'Paused — narration continues when you resume',
+    complete: 'Chapter narration finished', unavailable: `${language} voice unavailable on this device; subtitles continue`
+  };
+  de("#audio-status").textContent = messages[status.state] || messages.ready;
+  de("#audio-status").dataset.state = status.state;
+}
+function selectNarration(mode) {
+  Ge.setNarrationMode(mode);
+  _n = mode !== 'off';
+  if (Rt && ct && !vi && mode !== 'off') { Ge.narrate(rn[$e]); _n = false; }
+  updateAudioUI();
+}
+Ge.onStatusChange = updateAudioUI;
+document.querySelectorAll('[name="narration-mode"]').forEach(input => {
+  input.onchange = () => { if (input.checked) selectNarration(input.value); };
+});
+de("#audio-music").onchange = event => { Ge.setMusic(event.target.checked); updateAudioUI(); };
+de("#audio-effects").onchange = event => {
+  Ge.setEffects(event.target.checked);
+  if (event.target.checked) Ge.chime($e, { preview: true });
+  updateAudioUI();
 };
+updateAudioUI();
 de("#language").onclick = () => {
   ft = ft === "zh" ? "en" : "zh", document.documentElement.lang = ft === "zh" ? "zh-CN" : "en", document.querySelectorAll("[data-zh]").forEach((i) => i.textContent = ft === "zh" ? i.dataset.zh : i.dataset.en), de("#language").innerHTML = ft === "zh" ? "中 <span>/ EN</span>" : "<span>中 /</span> EN", Ti(), _a();
+  if ((Ge.mode === 'zh' || Ge.mode === 'en') && Ge.mode !== ft) selectNarration(ft);
+  else updateAudioUI();
 };
 async function ml() {
   try {
