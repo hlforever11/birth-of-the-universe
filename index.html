@@ -1,25 +1,31 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#02030c">
+<meta name="theme-color" content="#07090e">
+<meta name="description" content="宇宙的诞生：从量子涨落到星辰大海。交互式双语科学动画。">
 <title>宇宙的诞生：从量子涨落到星辰大海</title>
 <style>
-html,body{width:100%;height:100%;margin:0;overflow:hidden;background:#02030c}
-#universe-app{position:fixed;inset:0;width:100%;height:100%;border:0;background:#02030c}
-#site-meta{position:fixed;left:50%;bottom:2px;transform:translateX(-50%);z-index:9999;display:flex;align-items:center;gap:7px;max-width:calc(100vw - 20px);white-space:nowrap;color:rgba(112,124,158,.6);font:500 9.5px/14px -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;letter-spacing:.02em;text-shadow:0 1px 6px rgba(0,0,10,.92);pointer-events:none}
-#site-meta a{color:rgba(104,117,150,.62);text-decoration:none;pointer-events:auto}#site-meta a:hover{color:rgba(154,167,201,.88)}#site-meta .sep{opacity:.4}#site-meta .pv{color:rgba(112,124,158,.58)}#busuanzi_site_pv{color:rgba(132,145,178,.7);font-variant-numeric:tabular-nums}
-@media(max-width:640px){#site-meta{gap:5px;font-size:9px;letter-spacing:0}}
+html,body{width:100%;height:100%;margin:0;overflow:hidden;background:#050810}
+#universe-app{position:fixed;inset:0;width:100%;height:100%;border:0;background:#050810}
+#site-meta{position:fixed;left:50%;bottom:4px;transform:translateX(-50%);z-index:9999;display:flex;align-items:center;gap:8px;max-width:calc(100vw - 20px);white-space:nowrap;color:rgba(190,196,218,.72);font:500 10px/14px -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;letter-spacing:.03em;text-shadow:0 1px 8px rgba(0,0,10,.96);pointer-events:none}
+#site-meta a{color:#d8ba80;text-decoration:none;pointer-events:auto}#site-meta a:hover{color:#ffedc8;text-decoration:underline}
+#site-meta .sep{opacity:.38}#visit-count{color:#eee3cd;font-variant-numeric:tabular-nums}@media(max-width:640px){#site-meta{gap:5px;font-size:9px}}
 </style>
 </head>
 <body>
 <iframe id="universe-app" title="宇宙的诞生互动动画" allow="autoplay; fullscreen" allowfullscreen></iframe>
-<div id="site-meta" aria-label="邮箱和累计访问量"><a href="mailto:linhu@scu.edu.cn">linhu@scu.edu.cn</a><span class="sep">·</span><span class="pv">累计访问 <span id="busuanzi_site_pv">—</span> 次</span></div>
+<div id="site-meta" aria-label="网站联系信息与访问次数"><a href="mailto:linhu@scu.edu.cn">linhu@scu.edu.cn</a><span class="sep">·</span><span>累计访问 <strong id="visit-count">统计中…</strong> 次</span></div>
 <script>
 const frame=document.getElementById('universe-app');
-frame.src='./app.html'+location.search+location.hash;
+frame.src='./universe/index.html'+location.search+location.hash;
+const count=document.getElementById('visit-count');
+const localKey='cosmic-chronicle-local-visits-v1';
+const localValue=()=>{try{const n=(Number(localStorage.getItem(localKey))||0)+1;localStorage.setItem(localKey,String(n));return n.toLocaleString('zh-CN')}catch{return '—'}};
+const local=localValue();
+(async()=>{try{const r=await fetch('https://api.counterapi.dev/v1/hlforever11-birth-of-the-universe/universe-pageviews/up',{cache:'no-store'});if(!r.ok)throw new Error('counter '+r.status);const d=await r.json();const n=d.count??d.value??d.data?.count??d.data?.value;if(typeof n!=='number')throw new Error('invalid counter');count.textContent=n.toLocaleString('zh-CN')}catch{count.textContent=local}})();
+setTimeout(()=>{if(count.textContent==='统计中…')count.textContent=local},3500);
 </script>
-<script defer src="https://cdn.busuanzi.cc/busuanzi/3.6.9/busuanzi.min.js"></script>
 </body>
 </html>

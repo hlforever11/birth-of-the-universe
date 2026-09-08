@@ -1,38 +1,5 @@
 <!doctype html>
-<html lang="zh-CN">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#04040c">
-<title>宇宙诞生与演化</title>
-<meta name="description" content="宇宙诞生与演化：一段可交互、可播放的沉浸式科学动画。">
-<style>
-html,body{height:100%;margin:0;background:#04040c;color:#9fdeff;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif}#loading{position:fixed;inset:0;display:grid;place-items:center;text-align:center;background:radial-gradient(circle at 50% 40%,#172238 0,#04040c 62%)}#loading h1{font-weight:400;letter-spacing:.15em;font-size:clamp(22px,4vw,42px);margin:0 0 16px}#loading p{margin:0;color:#8d9caf;font-size:14px;letter-spacing:.08em}#loading.error p{max-width:680px;line-height:1.8;padding:0 24px;color:#ffb0a6}
-</style>
-</head>
-<body>
-<div id="loading"><div><h1>宇宙诞生与演化</h1><p>正在启动宇宙时间机器…</p></div></div>
-<script>
-(async()=>{
- const box=document.getElementById('loading');
- try{
-  if(!('DecompressionStream' in window))throw new Error('当前浏览器版本不支持所需的解压功能');
-  const files=['./pack/01.txt','./pack/02.txt','./pack/03.txt','./pack/04.txt','./pack/05.txt'];
-  const parts=await Promise.all(files.map(u=>fetch(u,{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error('资源加载失败 '+r.status);return r.text()})));
-  const bin=atob(parts.join('')),bytes=Uint8Array.from(bin,c=>c.charCodeAt(0));
-  const stream=new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
-  const html=await new Response(stream).text();
-  const footer=`<style id="site-footer-style">
-#site-footer{position:fixed;left:50%;bottom:3px;transform:translateX(-50%);z-index:30;display:flex;align-items:center;justify-content:center;gap:8px;max-width:calc(100vw - 24px);padding:2px 9px;border-radius:999px;background:rgba(4,4,12,.42);color:rgba(198,206,232,.68);font:11px/1.4 var(--font-zh,-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif);letter-spacing:.025em;white-space:nowrap;backdrop-filter:blur(5px);pointer-events:none;transition:opacity .35s ease}
-#site-footer a{color:rgba(159,222,255,.78);text-decoration:none;pointer-events:auto}#site-footer a:hover{color:#eef4ff;text-decoration:underline}#site-footer .dot{opacity:.45}body.idle #site-footer{opacity:.22}@media(max-width:600px){#site-footer{font-size:10px;gap:5px;padding:2px 7px}}
-</style><div id="site-footer" aria-label="网站联系信息与访问次数"><span>联系邮箱：<a href="mailto:linhu@scu.edu.cn">linhu@scu.edu.cn</a></span><span class="dot">·</span><span>访问次数：<strong id="visit-count" style="font-weight:500;color:rgba(238,244,255,.82)">统计中…</strong></span></div>`;
-  const counter='<scr'+'ipt>(async()=>{const el=document.getElementById("visit-count");try{const r=await fetch("https://api.counterapi.dev/v1/hlforever11-birth-of-the-universe/universe-pageviews/up",{cache:"no-store"});if(!r.ok)throw new Error("HTTP "+r.status);const d=await r.json();const n=d.count??d.value??d.data?.count??d.data?.value;if(typeof n!=="number")throw new Error("invalid response");el.textContent=n.toLocaleString("zh-CN")}catch(e){console.warn("Visit counter unavailable",e);el.textContent="暂不可用"}})();<\/scr'+'ipt>';
-  const patched=/<\/body>/i.test(html)?html.replace(/<\/body>/i,footer+counter+'</body>'):html+footer+counter;
-  document.open();document.write(patched);document.close();
- }catch(err){
-  console.error(err);box.className='error';box.querySelector('p').textContent='页面启动失败：'+err.message+'。请使用最新版 Chrome、Edge、Firefox 或 Safari 后重试。';
- }
-})();
-</script>
-<noscript><div style="padding:36px">此网页需要启用 JavaScript。</div></noscript>
-</body></html>
+<html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"><meta name="theme-color" content="#07090e"><meta name="description" content="穿越138亿年。用实时三维动画、双语解说与交互时间轴，探索宇宙从极早期到星辰大海的演化。"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='24' fill='none' stroke='%23deb779' stroke-width='2'/%3E%3Cellipse cx='32' cy='32' rx='30' ry='10' transform='rotate(-35 32 32)' fill='none' stroke='%23deb779' stroke-width='2'/%3E%3C/svg%3E"><title>宇宙的诞生 · COSMOS — Birth of the Universe</title>  <script type="module" crossorigin src="./assets/index-CHqxocjq.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-DaYwkgKV.css">
+</head><body><div id="app"></div></body></html>
+
